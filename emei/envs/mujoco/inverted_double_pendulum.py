@@ -49,7 +49,6 @@ class InvertedDoublePendulumEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
 
 if __name__ == '__main__':
-    from emei.envs.util import random_policy_test
 
     env = InvertedDoublePendulumEnv()
     # random_policy_test(env, is_render=True)

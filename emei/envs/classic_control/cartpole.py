@@ -5,29 +5,28 @@ permalink: https://perma.cc/C9ZM-652R
 """
 import math
 from typing import Optional, Union
-from abc import abstractmethod, ABC
 
 import numpy as np
 import pygame
 from pygame import gfxdraw
 
-import gym
-from gym import spaces, logger
-from gym.utils import seeding
+from gym import spaces
+from emei.envs.classic_control.base_control import BaseControlEnv
 
 
-class BaseCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]], ABC):
+class BaseCartPoleEnv(BaseControlEnv):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
 
-    def __init__(self, freq_rate=1):
-        self.freq_rate = freq_rate
-
+    def __init__(self,
+                 freq_rate=1,
+                 time_step=0.02):
+        super(BaseCartPoleEnv, self).__init__(freq_rate=freq_rate,
+                                              time_step=time_step)
         self.gravity = 9.8
-        self.masscart = 1.0
-        self.masspole = 1.0
-        self.total_mass = self.masspole + self.masscart
+        self.mass_cart = 1.0
+        self.mass_pole = 0.1
+        self.total_mass = self.mass_pole + self.mass_cart
         self.length = 0.5  # actually half the pole's length
-        self.polemass_length = self.masspole * self.length
         self.force_mag = 10.0
         self.time_step = 0.02  # seconds between state updates
 
@@ -38,59 +37,18 @@ class BaseCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]], ABC):
         state_high = np.full(4, np.inf, dtype=np.float32)
         self.observation_space = spaces.Box(-state_high, state_high, dtype=np.float32)
 
-        self.screen = None
-        self.clock = None
-        self.isopen = True
-        self.state = None
-
-    def _dsdt(self, s_augmented):
+    def _ds_dt(self, s_augmented):
         x, x_dot, theta, theta_dot, force = s_augmented
 
-        costheta = math.cos(theta)
-        sintheta = math.sin(theta)
-        temp = (force + self.polemass_length * theta_dot ** 2 * sintheta) / self.total_mass
-        thetaacc = (self.gravity * sintheta - costheta * temp) / (
-                self.length * (4.0 / 3.0 - self.masspole * costheta ** 2 / self.total_mass))
-        xacc = temp - self.polemass_length * thetaacc * costheta / self.total_mass
+        pole_mass_length = self.mass_pole * self.length
+        cos_theta = math.cos(theta)
+        sin_theta = math.sin(theta)
+        temp = (force + pole_mass_length * theta_dot ** 2 * sin_theta) / self.total_mass
+        theta_acc = (self.gravity * sin_theta - cos_theta * temp) / (
+                self.length * (4.0 / 3.0 - self.mass_pole * cos_theta ** 2 / self.total_mass))
+        x_acc = temp - pole_mass_length * theta_acc * cos_theta / self.total_mass
 
-        return (x_dot, xacc, theta_dot, thetaacc, 0.0)
-
-    @abstractmethod
-    def _get_force(self, action):
-        return 0.0
-
-    @abstractmethod
-    def _is_terminal(self):
-        return False
-
-    @abstractmethod
-    def _get_reward(self):
-        return 0.0
-
-    def step(self, action):
-        force = self._get_force(action)
-        tau = self.time_step / self.freq_rate
-        for i in range(self.freq_rate):
-            s_augmented = np.append(self.state, force)
-            x_dot, xacc, theta_dot, thetaacc, _ = self._dsdt(s_augmented)
-            self.state += np.array([x_dot, xacc, theta_dot, thetaacc]) * tau
-
-        return np.array(self.state, dtype=np.float32), self._get_reward(), self._is_terminal(), {}
-
-    def reset(
-            self,
-            *,
-            seed: Optional[int] = None,
-            return_info: bool = False,
-            options: Optional[dict] = None,
-    ):
-        super().reset(seed=seed)
-        self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
-        self.steps_beyond_done = None
-        if not return_info:
-            return np.array(self.state, dtype=np.float32)
-        else:
-            return np.array(self.state, dtype=np.float32), {}
+        return np.array([x_dot, x_acc, theta_dot, theta_acc, 0.0], dtype=np.float32)
 
     def render(self, mode="human"):
         screen_width = 600
@@ -171,52 +129,90 @@ class BaseCartPoleEnv(gym.Env[np.ndarray, Union[int, np.ndarray]], ABC):
                 np.array(pygame.surfarray.pixels3d(self.screen)), axes=(1, 0, 2)
             )
         else:
-            return self.isopen
-
-    def close(self):
-        if self.screen is not None:
-            pygame.display.quit()
-            pygame.quit()
-            self.isopen = False
+            return self.is_open
 
 
 class CartPoleHoldingEnv(BaseCartPoleEnv):
-    def __init__(self, freq_rate=1):
-        super(CartPoleHoldingEnv, self).__init__(freq_rate=freq_rate)
+    def __init__(self, freq_rate=1, time_step=0.02):
+        super(CartPoleHoldingEnv, self).__init__(freq_rate=freq_rate, time_step=time_step)
         self.action_space = spaces.Discrete(2)
 
-    def _get_force(self, action):
+    def _extract_action(self, action):
         return self.force_mag if action == 1 else -self.force_mag
 
     def _is_terminal(self):
         return not (-self.x_threshold < self.state[0] < self.x_threshold and
                     -self.theta_threshold_radians < self.state[2] < self.theta_threshold_radians)
 
+    def _get_initial_state(self):
+        return self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
+
     def _get_reward(self):
         return 1.0
 
 
 class CartPoleSwingUpEnv(BaseCartPoleEnv):
-    def __init__(self, freq_rate=1):
-        super(CartPoleSwingUpEnv, self).__init__(freq_rate=freq_rate)
+    def __init__(self, freq_rate=1, time_step=0.02):
+        super(CartPoleSwingUpEnv, self).__init__(freq_rate=freq_rate, time_step=time_step)
         self.x_threshold = 5
         self.action_space = spaces.Discrete(2)
 
-    def _get_force(self, action):
+    def _extract_action(self, action):
         return self.force_mag if action == 1 else -self.force_mag
 
     def _is_terminal(self):
         return not (-self.x_threshold < self.state[0] < self.x_threshold)
+
+    def _get_initial_state(self):
+        return self.np_random.uniform(low=-0.05, high=0.05, size=(4,)) + [0, 0, np.pi, 0]
+
+    def _get_reward(self):
+        return (math.cos(self.state[2]) + 1) / 2
+
+
+class ContinuousCartPoleHoldingEnv(BaseCartPoleEnv):
+    def __init__(self, freq_rate=1, time_step=0.02):
+        super(ContinuousCartPoleHoldingEnv, self).__init__(freq_rate=freq_rate, time_step=time_step)
+        action_high = np.ones(1, dtype=np.float32)
+        self.action_space = spaces.Box(-action_high, action_high, dtype=np.float32)
+
+    def _extract_action(self, action):
+        return self.force_mag * action[0]
+
+    def _is_terminal(self):
+        return not (-self.x_threshold < self.state[0] < self.x_threshold and
+                    -self.theta_threshold_radians < self.state[2] < self.theta_threshold_radians)
+
+    def _get_initial_state(self):
+        return self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
+
+    def _get_reward(self):
+        return 1.0
+
+
+class ContinuousCartPoleSwingUpEnv(BaseCartPoleEnv):
+    def __init__(self, freq_rate=1, time_step=0.02):
+        super(ContinuousCartPoleSwingUpEnv, self).__init__(freq_rate=freq_rate, time_step=time_step)
+        self.x_threshold = 5
+        action_high = np.ones(1, dtype=np.float32)
+        self.action_space = spaces.Box(-action_high, action_high, dtype=np.float32)
+
+    def _extract_action(self, action):
+        return self.force_mag * action[0]
+
+    def _is_terminal(self):
+        return not (-self.x_threshold < self.state[0] < self.x_threshold)
+
+    def _get_initial_state(self):
+        return self.np_random.uniform(low=-0.05, high=0.05, size=(4,)) + [0, 0, np.pi, 0]
 
     def _get_reward(self):
         return (math.cos(self.state[2]) + 1) / 2
 
 
 if __name__ == '__main__':
-    from emei.envs.util import random_policy_test
-    env = CartPoleHoldingEnv()
-    # random_policy_test(env, is_render=True)
-    env.reset()
-    env.state[2] = math.pi / 6
-    while True:
-        env.render()
+    from emei.util import random_policy_test
+
+    env = ContinuousCartPoleSwingUpEnv()
+    # env.freeze()
+    random_policy_test(env, is_render=True)

@@ -1,8 +1,12 @@
 from sympy import symbols, diff, sin, cos, simplify, nsimplify, solve, trigsimp
 from sympy.physics.mechanics import dynamicsymbols
 from sympy.solvers.solveset import linsolve
-
+from IPython.display import display, Latex
 from sympy.physics.vector.printing import vlatex
+
+
+def eq_simplify(s):
+    return simplify(trigsimp(s))
 
 
 def cartpole(n):
@@ -35,14 +39,14 @@ def cartpole(n):
         pole_x_pos += pole_lens[i] * sin(vertical_theta)
         pole_y_pos += pole_lens[i] * cos(vertical_theta)
     # solve the Lagrange equation
-    lagrange_func = trigsimp(kin_energy) - trigsimp(pot_energy)
-    print(lagrange_func)
+    lagrange_func = kin_energy - pot_energy
+
     equations = []
     eq = diff(diff(lagrange_func, cart_x_dot), 't') - diff(lagrange_func, cart_x)
-    equations.append(nsimplify(simplify(eq)))
+    equations.append(eq_simplify(eq))
     for i in range(n):
         eq = diff(diff(lagrange_func, pole_thetas_dot[i]), 't') - diff(lagrange_func, pole_thetas[i])
-        equations.append(nsimplify(simplify(eq)))
+        equations.append(eq_simplify(eq))
     # return the differential equations and the dynamic-symbols
     return equations, (cart_x, *pole_thetas)
 

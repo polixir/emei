@@ -50,6 +50,18 @@ def download_dataset_from_url(dataset_url):
     return dataset_filepath
 
 
+class Downloadable(object):
+    def __init__(self):
+        self.offline_dataset_names = []
+
+    @property
+    def dataset_names(self):
+        return self.offline_dataset_names
+
+    def download(self):
+        return None
+
+
 class OfflineEnv(gym.Env):
     """
     Base class for offline RL envs.

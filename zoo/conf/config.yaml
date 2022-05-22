@@ -1,0 +1,19 @@
+defaults:
+  - env: cont_cartpole_holding
+  - _self_
+
+algorithm: "SAC"
+seed: 0
+device: "cuda:0"
+log_frequency_agent: 1000
+
+exp_name: default
+
+root_dir: "./zoo_exp"
+hydra:
+  run:
+    dir: ${root_dir}/${algorithm}/${exp_name}/${env.name}/${now:%Y.%m.%d}/${now:%H%M%S}
+  sweep:
+    dir: ${root_dir}/${algorithm}/${exp_name}/${env.name}/${now:%Y.%m.%d}/${now:%H%M%S}
+  job:
+    chdir: true
