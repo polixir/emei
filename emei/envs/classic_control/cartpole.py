@@ -183,5 +183,4 @@ if __name__ == '__main__':
     from emei.util import random_policy_test
 
     env = ContinuousCartPoleSwingUpEnv()
-    # env.freeze()
     random_policy_test(env, is_render=True)

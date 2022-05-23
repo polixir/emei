@@ -11,6 +11,7 @@ from emei import Freezable
 
 class BaseControlEnv(gym.Env[np.ndarray, Union[int, np.ndarray]], Freezable):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
+
     def __init__(self,
                  freq_rate: int = 1,
                  time_step: float = 0.02) -> None:
@@ -52,7 +53,17 @@ class BaseControlEnv(gym.Env[np.ndarray, Union[int, np.ndarray]], Freezable):
         return 0.0
 
     def _get_obs(self):
-        return np.array(self.state, dtype=np.float32)
+        return self.state
+
+    def _set_state(self, obs):
+        self.state = obs
+
+    def query(self, obs, action):
+        self.freeze()
+        self._set_state(obs)
+        obs, reward, done, info = self.step(action)
+        self.unfreeze()
+        return obs, reward, done, info
 
     def update_state(self, updated):
         self.state += updated * (self.time_step / self.freq_rate)

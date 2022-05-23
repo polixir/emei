@@ -1,13 +1,13 @@
 import numpy as np
 from gym import utils
-from gym.envs.mujoco import mujoco_env
+from emei.envs.mujoco.base_mujoco import BaseMujocoEnv
 import os
 
-class InvertedPendulumEnv(mujoco_env.MujocoEnv, utils.EzPickle):
+
+class InvertedPendulumEnv(BaseMujocoEnv, utils.EzPickle):
     def __init__(self):
         utils.EzPickle.__init__(self)
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        mujoco_env.MujocoEnv.__init__(self, "%s/assets/inverted_pendulum.xml" % dir_path, 2)
+        BaseMujocoEnv.__init__(self, "inverted_pendulum.xml", 2)
 
     def step(self, a):
         reward = 1.0
@@ -36,11 +36,8 @@ class InvertedPendulumEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         v.cam.distance = self.model.stat.extent
 
 
-
 if __name__ == '__main__':
+    from emei.util import random_policy_test
+
     env = InvertedPendulumEnv()
-    # random_policy_test(env, is_render=True)
-    env.reset()
-    env.set_state(np.array([-0.5, np.pi / 6]), np.array([0, 0]))
-    while True:
-        env.render()
+    random_policy_test(env, is_render=False)

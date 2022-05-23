@@ -22,6 +22,10 @@ class Freezable(ABC):
     def unfreeze(self):
         raise NotImplementedError
 
+    @abstractmethod
+    def query(self, obs, action):
+        raise NotImplementedError
+
 
 def get_keys(h5file):
     keys = []

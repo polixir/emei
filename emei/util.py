@@ -13,7 +13,6 @@ def random_policy_test(env, is_render=False, sleep=None, default_action=None):
     while True:
         action = env.action_space.sample() if default_action is None else default_action
         obs, reward, done, _ = env.step(action)
-        print(obs, reward, done)
         episode_len += 1
         episode_rewards += reward
         render()

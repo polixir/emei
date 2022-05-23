@@ -33,9 +33,9 @@ class BaseChargedBallEnv(BaseControlEnv):
     def _get_angle(self, x, y):
         scale = math.sqrt(x ** 2 + y ** 2)
         if y > 0:
-            angle = math.asin(x / (scale * self.radius))
+            angle = math.asin(x / (scale * self.radius + 1e-8))
         else:
-            angle = np.pi - math.asin(x / (scale * self.radius))
+            angle = np.pi - math.asin(x / (scale * self.radius + 1e-8))
         return angle % (2 * np.pi)
 
     def _angle_greater(self, a1, a2):
@@ -93,6 +93,15 @@ class BaseChargedBallEnv(BaseControlEnv):
 
     def _get_obs(self):
         return np.array(self.state["free_state"], dtype=np.float32)
+
+    def _set_state(self, obs):
+        self.state = dict(on_circle=True,
+                     circle_state=np.empty(2, dtype=np.float32),
+                     free_state=np.empty(4, dtype=np.float32))
+        self.state["free_state"] = obs
+        if obs[0] ** 2 + obs[1] ** 2 >= self.radius ** 2:
+            self.state["on_circle"] = True
+            self.state["circle_state"] = self.free_to_circle(self.state["free_state"])
 
     def _is_terminal(self):
         return False

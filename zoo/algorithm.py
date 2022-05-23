@@ -42,5 +42,5 @@ def sac_eval(env_name, model_path):
 
 
 if __name__ == "__main__":
-    sac_eval("ContinuousCartPoleSwingUp-v0",
-             r"C:\Users\frank\Documents\Project\emei\zoo_exp\SAC\default\ContinuousCartPoleSwingUp-v0\2022.05.23\145351\medium_logs\best_model\best_model.zip")
+    sac_eval("ContinuousChargedBallCentering-v0",
+             r"C:\Users\frank\Documents\Project\emei\zoo_exp\SAC\default\ContinuousChargedBallCentering-v0\2022.05.23\212542\expert_logs\best_model\best_model.zip")

@@ -1,13 +1,12 @@
 import numpy as np
 from gym import utils
-from gym.envs.mujoco import mujoco_env
+from emei.envs.mujoco.base_mujoco import BaseMujocoEnv
 import os
 
 
-class InvertedDoublePendulumEnv(mujoco_env.MujocoEnv, utils.EzPickle):
+class InvertedDoublePendulumEnv(BaseMujocoEnv, utils.EzPickle):
     def __init__(self):
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        mujoco_env.MujocoEnv.__init__(self, "%s/assets/inverted_pendulum.xml" % dir_path, 5)
+        BaseMujocoEnv.__init__(self, "inverted_double_pendulum.xml", 5)
         utils.EzPickle.__init__(self)
 
     def step(self, action):
@@ -49,10 +48,7 @@ class InvertedDoublePendulumEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
 
 if __name__ == '__main__':
+    from emei.util import random_policy_test
 
     env = InvertedDoublePendulumEnv()
-    # random_policy_test(env, is_render=True)
-    env.reset()
-    env.set_state(np.array([0, np.pi / 6, np.pi / 6]), np.array([0, 0, 0]))
-    while True:
-        env.render()
+    random_policy_test(env, is_render=True)
