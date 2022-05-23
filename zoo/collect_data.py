@@ -1,5 +1,5 @@
 from stable_baselines3 import SAC
-from gym.wrappers import TimeLimit
+import gym
 import numpy as np
 from collections import defaultdict, Counter
 import h5py
@@ -20,31 +20,31 @@ def collect_replay_buffer(model):
     return samples
 
 
-def collect_by_policy(num=int(2e5), policy_path=None):
-    env = TimeLimit(ParticleEnv(), max_episode_steps)
+def collect_by_policy(env_name, sample_num, model=None):
+    env = gym.make(env_name)
     episode_rewards = []
 
     episode_reward = 0
     obs = env.reset()
     samples = defaultdict(list)
-    model = None
-    if policy_path is not None:
-        model = SAC.load(policy_path)
 
-    for t in tqdm(range(num)):
+    for t in tqdm(range(sample_num)):
         if model is None:
             action = env.action_space.sample()
         else:
             action, state = model.predict(obs, deterministic=True)
 
-        next_obs, reward, done, _ = env.step(action)
+        next_obs, reward, done, info = env.step(action)
+
         episode_reward += reward
+        timeout = "TimeLimit.truncated" in info
+        terminal = done and not timeout
 
         samples['observations'].append(obs)
         samples['actions'].append(action)
         samples['rewards'].append(reward)
-        samples['terminals'].append(float(done))
-        samples['timeouts'].append(float(0))
+        samples['terminals'].append(float(terminal))
+        samples['timeouts'].append(float(timeout))
 
         if done:
             obs = env.reset()
@@ -57,7 +57,7 @@ def collect_by_policy(num=int(2e5), policy_path=None):
     for key in samples.keys():
         np_samples[key] = np.array(samples[key])
 
-    return np_samples, min(episode_rewards), max(episode_rewards)
+    return np_samples, sum(episode_rewards) / len(episode_rewards)
 
 
 def save_as_h5(dataset, h5file_path):

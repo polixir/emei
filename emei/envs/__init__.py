@@ -31,3 +31,13 @@ register(
     entry_point="emei.envs.classic_control:ContinuousCartPoleSwingUpEnv",
     max_episode_steps=1000,
 )
+register(
+    id="ChargedBallCentering-v0",
+    entry_point="emei.envs.classic_control:ChargedBallCenteringEnv",
+    max_episode_steps=500,
+)
+register(
+    id="ContinuousChargedBallCentering-v0",
+    entry_point="emei.envs.classic_control:ContinuousChargedBallCenteringEnv",
+    max_episode_steps=1000,
+)

@@ -1,4 +1,7 @@
-def random_policy_test(env, is_render=False):
+import time
+
+
+def random_policy_test(env, is_render=False, sleep=None, default_action=None):
     def render():
         if is_render:
             env.render()
@@ -8,8 +11,9 @@ def random_policy_test(env, is_render=False):
     obs = env.reset()
     render()
     while True:
-        action = env.action_space.sample()
+        action = env.action_space.sample() if default_action is None else default_action
         obs, reward, done, _ = env.step(action)
+        print(obs, reward, done)
         episode_len += 1
         episode_rewards += reward
         render()
@@ -20,3 +24,6 @@ def random_policy_test(env, is_render=False):
             print("episode length: {}\tepisode rewards: {}".format(episode_len, episode_rewards))
             episode_len = 0
             episode_rewards = 0
+
+        if sleep is not None:
+            time.sleep(sleep)

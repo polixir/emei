@@ -15,8 +15,6 @@ from emei.envs.classic_control.base_control import BaseControlEnv
 
 
 class BaseCartPoleEnv(BaseControlEnv):
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
-
     def __init__(self,
                  freq_rate=1,
                  time_step=0.02):
@@ -37,8 +35,8 @@ class BaseCartPoleEnv(BaseControlEnv):
         state_high = np.full(4, np.inf, dtype=np.float32)
         self.observation_space = spaces.Box(-state_high, state_high, dtype=np.float32)
 
-    def _ds_dt(self, s_augmented):
-        x, x_dot, theta, theta_dot, force = s_augmented
+    def _get_update_info(self, force):
+        x, x_dot, theta, theta_dot = self.state
 
         pole_mass_length = self.mass_pole * self.length
         cos_theta = math.cos(theta)
@@ -48,37 +46,22 @@ class BaseCartPoleEnv(BaseControlEnv):
                 self.length * (4.0 / 3.0 - self.mass_pole * cos_theta ** 2 / self.total_mass))
         x_acc = temp - pole_mass_length * theta_acc * cos_theta / self.total_mass
 
-        return np.array([x_dot, x_acc, theta_dot, theta_acc, 0.0], dtype=np.float32)
+        return np.array([x_dot, x_acc, theta_dot, theta_acc], dtype=np.float32)
 
-    def render(self, mode="human"):
-        screen_width = 600
-        screen_height = 400
-
+    def draw(self):
         world_width = self.x_threshold * 2
-        scale = screen_width / world_width
+        scale = self.screen_width / world_width
         polewidth = 10.0
         polelen = scale * (2 * self.length)
         cartwidth = 50.0
         cartheight = 30.0
 
-        if self.state is None:
-            return None
-
         x = self.state
-
-        if self.screen is None:
-            pygame.init()
-            pygame.display.init()
-            self.screen = pygame.display.set_mode((screen_width, screen_height))
-        if self.clock is None:
-            self.clock = pygame.time.Clock()
-
-        self.surf = pygame.Surface((screen_width, screen_height))
         self.surf.fill((255, 255, 255))
 
         l, r, t, b = -cartwidth / 2, cartwidth / 2, cartheight / 2, -cartheight / 2
         axleoffset = cartheight / 4.0
-        cartx = x[0] * scale + screen_width / 2.0  # MIDDLE OF CART
+        cartx = x[0] * scale + self.screen_width / 2.0  # MIDDLE OF CART
         carty = 100  # TOP OF CART
         cart_coords = [(l, b), (l, t), (r, t), (r, b)]
         cart_coords = [(c[0] + cartx, c[1] + carty) for c in cart_coords]
@@ -115,21 +98,7 @@ class BaseCartPoleEnv(BaseControlEnv):
             (129, 132, 203),
         )
 
-        gfxdraw.hline(self.surf, 0, screen_width, carty, (0, 0, 0))
-
-        self.surf = pygame.transform.flip(self.surf, False, True)
-        self.screen.blit(self.surf, (0, 0))
-        if mode == "human":
-            pygame.event.pump()
-            self.clock.tick(self.metadata["render_fps"])
-            pygame.display.flip()
-
-        if mode == "rgb_array":
-            return np.transpose(
-                np.array(pygame.surfarray.pixels3d(self.screen)), axes=(1, 0, 2)
-            )
-        else:
-            return self.is_open
+        gfxdraw.hline(self.surf, 0, self.screen_width, carty, (0, 0, 0))
 
 
 class CartPoleHoldingEnv(BaseCartPoleEnv):
