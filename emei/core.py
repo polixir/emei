@@ -3,9 +3,11 @@ import os
 import urllib.request
 
 import gym
+import numpy as np
 import h5py
 from tqdm import tqdm
 from emei.offline_info import URL_INFOS
+from collections import defaultdict
 
 DATASET_PATH = os.path.expanduser('~/.emei/offline_data')
 
@@ -92,3 +94,49 @@ class Downloadable(object):
             assert key in data_dict, 'Dataset is missing key %s' % key
 
         return data_dict
+
+    def get_qlearning_dataset(self, dataset_name):
+        dataset = self.get_dataset(dataset_name)
+        N = dataset['rewards'].shape[0]
+        obs_ = []
+        next_obs_ = []
+        action_ = []
+        reward_ = []
+        done_ = []
+
+        for i in range(N - 1):
+            obs = dataset['observations'][i].astype(np.float32)
+            new_obs = dataset['observations'][i + 1].astype(np.float32)
+            action = dataset['actions'][i].astype(np.float32)
+            reward = dataset['rewards'][i].astype(np.float32)
+            done_bool = bool(dataset['terminals'][i])
+
+            obs_.append(obs)
+            next_obs_.append(new_obs)
+            action_.append(action)
+            reward_.append(reward)
+            done_.append(done_bool)
+        return {
+            'observations': np.array(obs_),
+            'actions': np.array(action_),
+            'next_observations': np.array(next_obs_),
+            'rewards': np.array(reward_),
+            'terminals': np.array(done_),
+        }
+
+    def get_sequence_dataset(self, dataset_name):
+        dataset = self.get_dataset(dataset_name)
+        N = dataset['rewards'].shape[0]
+        data = defaultdict(lambda: defaultdict(list))
+
+        sequence_num = 0
+        for i in range(N):
+            done_bool = bool(dataset['terminals'][i])
+            final_timestep = dataset['timeouts'][i]
+
+            for k in dataset:
+                data[sequence_num][k].append(dataset[k][i])
+
+            if done_bool or final_timestep:
+                sequence_num += 1
+        return data

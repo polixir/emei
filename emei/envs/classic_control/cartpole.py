@@ -183,6 +183,11 @@ if __name__ == '__main__':
     from emei.util import random_policy_test
 
     env = ContinuousCartPoleSwingUpEnv()
-    d = env.get_dataset('freq_rate=1&time_step=0.02-expert')
+    d = env.get_qlearning_dataset('freq_rate=1&time_step=0.02-expert')
     print(sum(d["terminals"]) / len(d["terminals"]))
+
+    d = env.get_sequence_dataset('freq_rate=1&time_step=0.02-expert')
+    print(d.keys())
+    print(d[0]["timeouts"])
+
     # random_policy_test(env, is_render=True)
