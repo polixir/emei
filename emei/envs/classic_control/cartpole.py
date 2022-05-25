@@ -183,4 +183,6 @@ if __name__ == '__main__':
     from emei.util import random_policy_test
 
     env = ContinuousCartPoleSwingUpEnv()
-    random_policy_test(env, is_render=True)
+    d = env.get_dataset('freq_rate=1&time_step=0.02-expert')
+    print(sum(d["terminals"]) / len(d["terminals"]))
+    # random_policy_test(env, is_render=True)

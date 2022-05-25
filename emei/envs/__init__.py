@@ -1,1 +1,1 @@
-from emei.envs import register_env, offline_env
+from emei.envs import register_env

@@ -41,3 +41,46 @@ register(
     entry_point="emei.envs.classic_control:ContinuousChargedBallCenteringEnv",
     max_episode_steps=1000,
 )
+
+# Mujoco
+# ----------------------------------------
+register(
+    id="ReboundInvertedPendulumSwingUp-v0",
+    entry_point="emei.envs.mujoco:ReboundInvertedPendulumSwingUpEnv",
+    max_episode_steps=1000,
+)
+register(
+    id="ReboundInvertedPendulumHolding-v0",
+    entry_point="emei.envs.mujoco:ReboundInvertedPendulumHoldingEnv",
+    max_episode_steps=1000,
+)
+register(
+    id="BoundaryInvertedPendulumSwingUp-v0",
+    entry_point="emei.envs.mujoco:BoundaryInvertedPendulumSwingUpEnv",
+    max_episode_steps=1000,
+)
+register(
+    id="BoundaryInvertedPendulumHolding-v0",
+    entry_point="emei.envs.mujoco:BoundaryInvertedPendulumHoldingEnv",
+    max_episode_steps=1000,
+)
+register(
+    id="ReboundInvertedDoublePendulumSwingUp-v0",
+    entry_point="emei.envs.mujoco:ReboundInvertedDoublePendulumSwingUpEnv",
+    max_episode_steps=1000,
+)
+register(
+    id="ReboundInvertedDoublePendulumHolding-v0",
+    entry_point="emei.envs.mujoco:ReboundInvertedDoublePendulumHoldingEnv",
+    max_episode_steps=1000,
+)
+register(
+    id="BoundaryInvertedDoublePendulumSwingUp-v0",
+    entry_point="emei.envs.mujoco:BoundaryInvertedDoublePendulumSwingUpEnv",
+    max_episode_steps=1000,
+)
+register(
+    id="BoundaryInvertedDoublePendulumHolding-v0",
+    entry_point="emei.envs.mujoco:BoundaryInvertedDoublePendulumHoldingEnv",
+    max_episode_steps=1000,
+)

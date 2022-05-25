@@ -1,12 +1,13 @@
 from collections import OrderedDict
 import os
 from typing import Optional
+from abc import abstractmethod
 
 from gym import error, spaces
 import numpy as np
 from os import path
 import gym
-from emei import Freezable
+from emei import Freezable, Downloadable
 
 try:
     import mujoco_py
@@ -40,19 +41,38 @@ def convert_observation_to_space(observation):
     return space
 
 
-class BaseMujocoEnv(gym.Env, Freezable):
+class BaseMujocoEnv(gym.Env, Freezable, Downloadable):
     """Superclass for all MuJoCo environments."""
 
-    def __init__(self, model_path, frame_skip):
+    def __init__(self,
+                 model_path,
+                 freq_rate: int = 1,
+                 time_step: float = 0.02,
+                 integrator="standard_euler"):
         Freezable.__init__(self)
+        Downloadable.__init__(self)
         if model_path.startswith("/"):
             fullpath = model_path
         else:
             fullpath = os.path.join(os.path.dirname(__file__), "assets", model_path)
         if not path.exists(fullpath):
             raise OSError(f"File {fullpath} does not exist")
-        self.frame_skip = frame_skip
+        self.freq_rate = freq_rate
         self.model = mujoco_py.load_model_from_path(fullpath)
+        self._update_model()
+
+        self.model.opt.timestep = time_step / freq_rate
+        self.standard_euler = False
+        if integrator == "standard_euler":
+            self.model.opt.integrator = 0
+            self.standard_euler = True
+        elif integrator == "semi_euler":
+            self.model.opt.integrator = 0
+        elif integrator == "rk4":
+            self.model.opt.integrator = 1
+        else:
+            raise NotImplementedError
+
         self.sim = mujoco_py.MjSim(self.model)
         self.data = self.sim.data
         self.viewer = None
@@ -74,12 +94,45 @@ class BaseMujocoEnv(gym.Env, Freezable):
 
         self._set_observation_space(observation)
 
+    def _update_model(self):
+        pass
+
     def freeze(self):
         self.frozen_state = self.sim.get_state()
 
     def unfreeze(self):
         self.sim.set_state(self.frozen_state)
         self.sim.forward()
+
+    def restore_pos_vel_from_obs(self, obs):
+        if obs.shape == (self.model.nq + self.model.nv,):
+            return obs[:self.model.nq], obs[self.model.nq:]
+        else:
+            raise NotImplementedError
+
+    def query(self, obs, action):
+        self.freeze()
+        qpos, qvel = self.restore_pos_vel_from_obs(obs)
+        self.set_state(qpos, qvel)
+        obs, reward, done, info = self.step(action)
+        self.unfreeze()
+        return obs, reward, done, info
+
+    def _get_obs(self):
+        return np.concatenate([self.sim.data.qpos, self.sim.data.qvel]).ravel()
+
+    @abstractmethod
+    def _get_reward(self) -> float:
+        return 0.0
+
+    @abstractmethod
+    def _is_terminal(self) -> bool:
+        return False
+
+    def step(self, action):
+        self.do_simulation(action, self.freq_rate)
+        return self._get_obs(), self._get_reward(), self._is_terminal(), {}
+
 
     def _set_action_space(self):
         bounds = self.model.actuator_ctrlrange.copy().astype(np.float32)
@@ -137,7 +190,7 @@ class BaseMujocoEnv(gym.Env, Freezable):
 
     @property
     def dt(self):
-        return self.model.opt.timestep * self.frame_skip
+        return self.model.opt.timestep * self.freq_rate
 
     def do_simulation(self, ctrl, n_frames):
         if np.array(ctrl).shape != self.action_space.shape:
@@ -145,7 +198,12 @@ class BaseMujocoEnv(gym.Env, Freezable):
 
         self.sim.data.ctrl[:] = ctrl
         for _ in range(n_frames):
+            old_qpos, old_qvel = self.sim.data.qpos, self.sim.data.qvel
             self.sim.step()
+            if self.standard_euler:
+                new_qpos = old_qpos + old_qvel * self.model.opt.timestep
+                new_qvel = self.sim.data.qvel
+                self.set_state(new_qpos, new_qvel)
 
     def render(
             self,

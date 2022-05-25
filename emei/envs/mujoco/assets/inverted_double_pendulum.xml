@@ -19,10 +19,10 @@
     <numeric data="2" name="frame_skip"/>
   </custom>
   <default>
-    <joint damping="0.05"/>
+    <joint damping="0"/>
     <geom contype="0" friction="1 0.1 0.1" rgba="0.7 0.7 0 1"/>
   </default>
-  <option gravity="1e-5 0 -9.81" integrator="RK4" timestep="0.01"/>
+  <option gravity="1e-5 0 -9.81" integrator="Euler" timestep="0.02"/>
   <size nstack="3000"/>
   <worldbody>
     <geom name="floor" pos="0 0 -3.0" rgba="0.8 0.9 0.8 1" size="40 40 40" type="plane"/>

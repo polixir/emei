@@ -6,16 +6,17 @@ import numpy as np
 import pygame
 
 import gym
-from emei import Freezable
+from emei import Freezable, Downloadable
 
 
-class BaseControlEnv(gym.Env[np.ndarray, Union[int, np.ndarray]], Freezable):
+class BaseControlEnv(gym.Env[np.ndarray, Union[int, np.ndarray]], Freezable, Downloadable):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
 
     def __init__(self,
                  freq_rate: int = 1,
                  time_step: float = 0.02) -> None:
-        super(BaseControlEnv, self).__init__()
+        Freezable.__init__(self)
+        Downloadable.__init__(self)
         self.freq_rate = freq_rate
         self.time_step = time_step
 
