@@ -7,7 +7,7 @@ from gym import error, spaces
 import numpy as np
 from os import path
 import gym
-from emei import Freezable, Downloadable
+from emei import FreezableEnv, Downloadable
 
 try:
     import mujoco_py
@@ -41,7 +41,7 @@ def convert_observation_to_space(observation):
     return space
 
 
-class BaseMujocoEnv(gym.Env, Freezable, Downloadable):
+class BaseMujocoEnv(FreezableEnv, Downloadable):
     """Superclass for all MuJoCo environments."""
 
     def __init__(self,
@@ -49,7 +49,7 @@ class BaseMujocoEnv(gym.Env, Freezable, Downloadable):
                  freq_rate: int = 1,
                  time_step: float = 0.02,
                  integrator="standard_euler"):
-        Freezable.__init__(self)
+        FreezableEnv.__init__(self)
         Downloadable.__init__(self)
         if model_path.startswith("/"):
             fullpath = model_path
@@ -110,29 +110,16 @@ class BaseMujocoEnv(gym.Env, Freezable, Downloadable):
         else:
             raise NotImplementedError
 
-    def query(self, obs, action):
-        self.freeze()
-        qpos, qvel = self.restore_pos_vel_from_obs(obs)
-        self.set_state(qpos, qvel)
-        obs, reward, done, info = self.step(action)
-        self.unfreeze()
-        return obs, reward, done, info
+    def _set_state_by_obs(self, obs):
+        self.set_state(*self.restore_pos_vel_from_obs(obs))
 
     def _get_obs(self):
         return np.concatenate([self.sim.data.qpos, self.sim.data.qvel]).ravel()
 
-    @abstractmethod
-    def _get_reward(self) -> float:
-        return 0.0
-
-    @abstractmethod
-    def _is_terminal(self) -> bool:
-        return False
-
     def step(self, action):
         self.do_simulation(action, self.freq_rate)
-        return self._get_obs(), self._get_reward(), self._is_terminal(), {}
-
+        obs = self._get_obs()
+        return obs, self.get_single_reward_by_next_obs(obs), self.get_single_terminal_by_next_obs(obs), {}
 
     def _set_action_space(self):
         bounds = self.model.actuator_ctrlrange.copy().astype(np.float32)

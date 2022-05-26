@@ -91,19 +91,19 @@ class BaseChargedBallEnv(BaseControlEnv):
                      free_state=self.circle_to_free(circle_state))
         return state
 
-    def _get_obs(self):
-        return np.array(self.state["free_state"], dtype=np.float32)
+    def _get_obs(self, state):
+        return np.array(state["free_state"], dtype=np.float32)
 
-    def _set_state(self, obs):
+    def _set_state_by_obs(self, obs):
         self.state = dict(on_circle=True,
-                     circle_state=np.empty(2, dtype=np.float32),
-                     free_state=np.empty(4, dtype=np.float32))
+                          circle_state=np.empty(2, dtype=np.float32),
+                          free_state=np.empty(4, dtype=np.float32))
         self.state["free_state"] = obs
         if obs[0] ** 2 + obs[1] ** 2 >= self.radius ** 2:
             self.state["on_circle"] = True
             self.state["circle_state"] = self.free_to_circle(self.state["free_state"])
 
-    def _is_terminal(self):
+    def get_single_terminal_by_next_obs(self, next_obs):
         return False
 
     def draw(self):
@@ -151,8 +151,8 @@ class ChargedBallCenteringEnv(BaseChargedBallEnv):
     def _extract_action(self, action):
         return self.charge if action == 1 else -self.charge
 
-    def _get_reward(self):
-        x, y, v_x, v_y = self.state["free_state"]
+    def get_single_reward_by_next_obs(self, obs):
+        x, y, v_x, v_y = obs
         return 1 - math.sqrt(x ** 2 + y ** 2) / self.radius
 
 
@@ -165,8 +165,8 @@ class ContinuousChargedBallCenteringEnv(BaseChargedBallEnv):
     def _extract_action(self, action):
         return self.charge * action[0]
 
-    def _get_reward(self):
-        x, y, v_x, v_y = self.state["free_state"]
+    def get_single_reward_by_next_obs(self, obs):
+        x, y, v_x, v_y = obs
         return 1 - math.sqrt(x ** 2 + y ** 2) / self.radius
 
 
@@ -174,4 +174,4 @@ if __name__ == '__main__':
     from emei.util import random_policy_test
 
     env = ContinuousChargedBallCenteringEnv()
-    random_policy_test(env, is_render=True, sleep=0.1)
+    random_policy_test(env, is_render=True, default_action=[1])

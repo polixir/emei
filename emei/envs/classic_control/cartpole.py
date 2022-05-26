@@ -4,7 +4,6 @@ Copied from http://incompleteideas.net/sutton/book/code/pole.c
 permalink: https://perma.cc/C9ZM-652R
 """
 import math
-from typing import Optional, Union
 
 import numpy as np
 import pygame
@@ -32,8 +31,8 @@ class BaseCartPoleEnv(BaseControlEnv):
         self.theta_threshold_radians = 12 * 2 * math.pi / 360
         self.x_threshold = 2.4
 
-        state_high = np.full(4, np.inf, dtype=np.float32)
-        self.observation_space = spaces.Box(-state_high, state_high, dtype=np.float32)
+        state_high = np.full(4, np.inf, dtype=self.numpy_dtype)
+        self.observation_space = spaces.Box(-state_high, state_high, dtype=self.numpy_dtype)
 
     def _get_update_info(self, force):
         x, x_dot, theta, theta_dot = self.state
@@ -46,7 +45,7 @@ class BaseCartPoleEnv(BaseControlEnv):
                 self.length * (4.0 / 3.0 - self.mass_pole * cos_theta ** 2 / self.total_mass))
         x_acc = temp - pole_mass_length * theta_acc * cos_theta / self.total_mass
 
-        return np.array([x_dot, x_acc, theta_dot, theta_acc], dtype=np.float32)
+        return np.array([x_dot, x_acc, theta_dot, theta_acc], dtype=self.numpy_dtype)
 
     def draw(self):
         world_width = self.x_threshold * 2
@@ -109,15 +108,16 @@ class CartPoleHoldingEnv(BaseCartPoleEnv):
     def _extract_action(self, action):
         return self.force_mag if action == 1 else -self.force_mag
 
-    def _is_terminal(self):
-        return not (-self.x_threshold < self.state[0] < self.x_threshold and
-                    -self.theta_threshold_radians < self.state[2] < self.theta_threshold_radians)
+    def get_single_terminal_by_next_obs(self, next_obs):
+        return not (-self.x_threshold < next_obs[0] < self.x_threshold and
+                    -self.theta_threshold_radians < next_obs[2] < self.theta_threshold_radians)
+
+    def get_single_reward_by_next_obs(self, next_obs):
+
+        return 1.0
 
     def _get_initial_state(self):
         return self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
-
-    def _get_reward(self):
-        return 1.0
 
 
 class CartPoleSwingUpEnv(BaseCartPoleEnv):
@@ -129,14 +129,15 @@ class CartPoleSwingUpEnv(BaseCartPoleEnv):
     def _extract_action(self, action):
         return self.force_mag if action == 1 else -self.force_mag
 
-    def _is_terminal(self):
-        return not (-self.x_threshold < self.state[0] < self.x_threshold)
+    def get_single_terminal_by_next_obs(self, next_obs):
+        return not (-self.x_threshold < next_obs[0] < self.x_threshold)
+
+    def get_single_reward_by_next_obs(self, next_obs):
+        return (math.cos(next_obs[2]) + 1) / 2
 
     def _get_initial_state(self):
-        return self.np_random.uniform(low=-0.05, high=0.05, size=(4,)) + [0, 0, np.pi, 0]
-
-    def _get_reward(self):
-        return (math.cos(self.state[2]) + 1) / 2
+        init_state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,)) + [0, 0, np.pi, 0]
+        return init_state
 
 
 class ContinuousCartPoleHoldingEnv(BaseCartPoleEnv):
@@ -148,15 +149,15 @@ class ContinuousCartPoleHoldingEnv(BaseCartPoleEnv):
     def _extract_action(self, action):
         return self.force_mag * action[0]
 
-    def _is_terminal(self):
-        return not (-self.x_threshold < self.state[0] < self.x_threshold and
-                    -self.theta_threshold_radians < self.state[2] < self.theta_threshold_radians)
+    def get_single_terminal_by_next_obs(self, next_obs):
+        return not (-self.x_threshold < next_obs[0] < self.x_threshold and
+                    -self.theta_threshold_radians < next_obs[2] < self.theta_threshold_radians)
+
+    def get_single_reward_by_next_obs(self, next_obs):
+        return 1.0
 
     def _get_initial_state(self):
         return self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
-
-    def _get_reward(self):
-        return 1.0
 
 
 class ContinuousCartPoleSwingUpEnv(BaseCartPoleEnv):
@@ -169,25 +170,19 @@ class ContinuousCartPoleSwingUpEnv(BaseCartPoleEnv):
     def _extract_action(self, action):
         return self.force_mag * action[0]
 
-    def _is_terminal(self):
-        return not (-self.x_threshold < self.state[0] < self.x_threshold)
+    def get_single_terminal_by_next_obs(self, next_obs):
+        return not (-self.x_threshold < next_obs[0] < self.x_threshold)
+
+    def get_single_reward_by_next_obs(self, next_obs):
+        return (math.cos(next_obs[2]) + 1) / 2
 
     def _get_initial_state(self):
-        return self.np_random.uniform(low=-0.05, high=0.05, size=(4,)) + [0, 0, np.pi, 0]
-
-    def _get_reward(self):
-        return (math.cos(self.state[2]) + 1) / 2
+        init_state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,)) + [0, 0, np.pi, 0]
+        return init_state
 
 
 if __name__ == '__main__':
     from emei.util import random_policy_test
 
-    env = ContinuousCartPoleSwingUpEnv()
-    d = env.get_qlearning_dataset('freq_rate=1&time_step=0.02-expert')
-    print(sum(d["terminals"]) / len(d["terminals"]))
-
-    d = env.get_sequence_dataset('freq_rate=1&time_step=0.02-expert')
-    print(d.keys())
-    print(d[0]["timeouts"])
-
-    # random_policy_test(env, is_render=True)
+    env = ContinuousCartPoleHoldingEnv()
+    random_policy_test(env, is_render=True)

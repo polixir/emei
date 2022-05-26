@@ -43,12 +43,11 @@ class ReboundInvertedPendulumHoldingEnv(BaseInvertedPendulumEnv):
                                          time_step=time_step,
                                          integrator=integrator)
 
-    def _get_reward(self):
+    def get_single_reward_by_next_obs(self, next_obs):
         return 1.0
 
-    def _is_terminal(self) -> bool:
-        ob = self._get_obs()
-        notdone = np.isfinite(ob).all() and (np.abs(ob[1]) <= 0.2)
+    def get_single_terminal_by_next_obs(self, next_obs):
+        notdone = np.isfinite(next_obs).all() and (np.abs(next_obs[1]) <= 0.2)
         return not notdone
 
 
@@ -62,13 +61,12 @@ class BoundaryInvertedPendulumHoldingEnv(BaseInvertedPendulumEnv):
                                          time_step=time_step,
                                          integrator=integrator)
 
-    def _get_reward(self):
+    def get_single_reward_by_next_obs(self, next_obs):
         return 1.0
 
-    def _is_terminal(self) -> bool:
-        ob = self._get_obs()
+    def get_single_terminal_by_next_obs(self, next_obs):
         x_left, x_right = self.model.jnt_range[0]
-        notdone = np.isfinite(ob).all() and (np.abs(ob[1]) <= 0.2) and (x_left < ob[0] < x_right)
+        notdone = np.isfinite(next_obs).all() and (np.abs(next_obs[1]) <= 0.2) and (x_left < next_obs[0] < x_right)
         return not notdone
 
 
@@ -99,16 +97,13 @@ class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
         self.set_state(qpos, qvel)
         return self._get_obs()
 
-    def _get_reward(self):
-        ob = self._get_obs()
-        omega = self.sim.data.qvel[1]
+    def get_single_reward_by_next_obs(self, next_obs):
+        omega = next_obs[3]
         vel_penalty = 0.1 * abs(omega)
-        return (math.cos(ob[1]) + 1 - vel_penalty) / 2
+        return (math.cos(next_obs[1]) + 1 - vel_penalty) / 2
 
-    def _is_terminal(self) -> bool:
-        ob = self._get_obs()
-        omega = self.sim.data.qvel[1]
-        notdone = np.isfinite(ob).all() and abs(omega) < 1e4
+    def get_single_terminal_by_next_obs(self, next_obs):
+        notdone = np.isfinite(next_obs).all()
         return not notdone
 
 
@@ -139,25 +134,23 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
         self.set_state(qpos, qvel)
         return self._get_obs()
 
-    def _get_reward(self):
-        ob = self._get_obs()
-        omega = self.sim.data.qvel[1]
+    def get_single_reward_by_next_obs(self, next_obs):
+        omega = next_obs[3]
         vel_penalty = 0.1 * abs(omega)
-        return (math.cos(ob[1]) + 1 - vel_penalty) / 2
+        return (math.cos(next_obs[1]) + 1 - vel_penalty) / 2
 
-    def _is_terminal(self) -> bool:
-        ob = self._get_obs()
-        omega = self.sim.data.qvel[1]
+    def get_single_terminal_by_next_obs(self, next_obs):
         x_left, x_right = self.model.jnt_range[0]
-        notdone = np.isfinite(ob).all() and abs(omega) < 1e4 and (x_left < ob[0] < x_right)
+        notdone = np.isfinite(next_obs).all() and (x_left < next_obs[0] < x_right)
         return not notdone
 
 
 if __name__ == '__main__':
     from emei.util import random_policy_test
 
-    env = ReboundInvertedPendulumSwingUpEnv()
-    # random_policy_test(env, is_render=True)
-    d = env.get_dataset('freq_rate=1&time_step=0.02-expert')
-    print(sum(d["terminals"]) / len(d["terminals"]))
+    env = BoundaryInvertedPendulumHoldingEnv()
+    random_policy_test(env, is_render=True)
+
+    # d = env.get_dataset('freq_rate=1&time_step=0.02-expert')
+    # print(sum(d["terminals"]) / len(d["terminals"]))
     # random_policy_test(env, is_render=True)

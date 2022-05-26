@@ -1,37 +1,32 @@
-from typing import Union, Optional
+import gym
+import pygame
+import numpy as np
 
+from typing import Union, Optional
 from abc import abstractmethod
 
-import numpy as np
-import pygame
-
-import gym
-from emei import Freezable, Downloadable
+from emei import FreezableEnv, Downloadable
 
 
-class BaseControlEnv(gym.Env[np.ndarray, Union[int, np.ndarray]], Freezable, Downloadable):
+class BaseControlEnv(FreezableEnv, Downloadable):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
 
     def __init__(self,
                  freq_rate: int = 1,
                  time_step: float = 0.02) -> None:
-        Freezable.__init__(self)
+        FreezableEnv.__init__(self)
         Downloadable.__init__(self)
         self.freq_rate = freq_rate
         self.time_step = time_step
 
+        self.numpy_dtype = np.float32
         self.screen = None
         self.is_open = True
         self.clock = None
-        self.state = None
+        self.state = np.empty(0).astype(self.numpy_dtype)
         self.screen_width = 600
         self.screen_height = 400
 
-    def freeze(self) -> None:
-        self.frozen_state = self.state
-
-    def unfreeze(self) -> None:
-        self.state = self.frozen_state
 
     @abstractmethod
     def _get_update_info(self, action):
@@ -42,29 +37,20 @@ class BaseControlEnv(gym.Env[np.ndarray, Union[int, np.ndarray]], Freezable, Dow
         return action
 
     @abstractmethod
-    def _is_terminal(self) -> bool:
-        return False
-
-    @abstractmethod
-    def _get_reward(self) -> float:
-        return 0.0
-
-    @abstractmethod
     def _get_initial_state(self):
-        return 0.0
+        return np.empty(0).astype(self.numpy_dtype)
 
-    def _get_obs(self):
-        return self.state
+    def freeze(self) -> None:
+        self.frozen_state = self.state.copy()
 
-    def _set_state(self, obs):
+    def unfreeze(self) -> None:
+        self.state = self.frozen_state.copy()
+
+    def _set_state_by_obs(self, obs):
         self.state = obs
 
-    def query(self, obs, action):
-        self.freeze()
-        self._set_state(obs)
-        obs, reward, done, info = self.step(action)
-        self.unfreeze()
-        return obs, reward, done, info
+    def _get_obs(self, state):
+        return state.astype(self.numpy_dtype)
 
     def update_state(self, updated):
         self.state += updated * (self.time_step / self.freq_rate)
@@ -74,7 +60,9 @@ class BaseControlEnv(gym.Env[np.ndarray, Union[int, np.ndarray]], Freezable, Dow
         for i in range(self.freq_rate):
             updated = self._get_update_info(extracted_action)
             self.update_state(updated)
-        return self._get_obs(), self._get_reward(), self._is_terminal(), {}
+
+        obs = self._get_obs(self.state)
+        return obs, self.get_reward_by_next_obs(obs), self.get_terminal_by_next_obs(obs), {}
 
     def reset(
             self,
@@ -86,9 +74,9 @@ class BaseControlEnv(gym.Env[np.ndarray, Union[int, np.ndarray]], Freezable, Dow
         super().reset(seed=seed)
         self.state = self._get_initial_state()
         if not return_info:
-            return self._get_obs()
+            return self._get_obs(self.state)
         else:
-            return self._get_obs(), {}
+            return self._get_obs(self.state), {}
 
     def draw(self):
         pass

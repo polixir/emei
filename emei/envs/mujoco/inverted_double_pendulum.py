@@ -17,9 +17,6 @@ class BaseInvertedDoublePendulumEnv(BaseMujocoEnv, utils.EzPickle):
                                integrator=integrator)
         utils.EzPickle.__init__(self)
 
-    def _get_obs(self):
-        return np.concatenate([self.sim.data.qpos, self.sim.data.qvel]).ravel()
-
     def reset_model(self):
         self.set_state(
             self.init_qpos
@@ -45,17 +42,19 @@ class ReboundInvertedDoublePendulumHoldingEnv(BaseInvertedDoublePendulumEnv):
                                                time_step=time_step,
                                                integrator=integrator)
 
-    def _get_reward(self):
-        x, _, y = self.sim.data.site_xpos[0]
+    def get_single_reward_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs
+        y = math.cos(theta1) + math.cos(theta1 + theta2)
         dist_penalty = 0.01 * x ** 2 + (y - 2) ** 2
-        v1, v2 = self.sim.data.qvel[1:3]
-        vel_penalty = 1e-3 * v1 ** 2 + 5e-3 * v2 ** 2
+        vel_penalty = 1e-3 * omega1 ** 2 + 5e-3 * omega2 ** 2
         alive_bonus = 10
         return (alive_bonus - dist_penalty - vel_penalty) / 10
 
-    def _is_terminal(self) -> bool:
-        x, _, y = self.sim.data.site_xpos[0]
-        return bool(y <= 1)
+    def get_single_terminal_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs
+        y = math.cos(theta1) + math.cos(theta1 + theta2)
+        notdone = np.isfinite(next_obs).all() and y > 1.5 and (abs(omega1) < 1e5 and abs(omega2) < 1e5)
+        return not notdone
 
 
 class BoundaryInvertedDoublePendulumHoldingEnv(BaseInvertedDoublePendulumEnv):
@@ -68,19 +67,20 @@ class BoundaryInvertedDoublePendulumHoldingEnv(BaseInvertedDoublePendulumEnv):
                                                time_step=time_step,
                                                integrator=integrator)
 
-    def _get_reward(self):
-        x, _, y = self.sim.data.site_xpos[0]
+    def get_single_reward_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs
+        y = math.cos(theta1) + math.cos(theta1 + theta2)
         dist_penalty = 0.01 * x ** 2 + (y - 2) ** 2
-        v1, v2 = self.sim.data.qvel[1:3]
-        vel_penalty = 1e-3 * v1 ** 2 + 5e-3 * v2 ** 2
+        vel_penalty = 1e-3 * omega1 ** 2 + 5e-3 * omega2 ** 2
         alive_bonus = 10
         return (alive_bonus - dist_penalty - vel_penalty) / 10
 
-    def _is_terminal(self) -> bool:
-        ob = self._get_obs()
+    def get_single_terminal_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs
         x_left, x_right = self.model.jnt_range[0]
-        _, _, h = self.sim.data.site_xpos[0]
-        notdone = np.isfinite(ob).all() and (x_left < ob[0] < x_right) and h > 1
+        y = math.cos(theta1) + math.cos(theta1 + theta2)
+        notdone = np.isfinite(next_obs).all() and (x_left < x < x_right) and y > 1.5 and (
+                abs(omega1) < 1e5 and abs(omega2) < 1e5)
         return not notdone
 
 
@@ -111,16 +111,15 @@ class ReboundInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
         self.set_state(qpos, qvel)
         return self._get_obs()
 
-    def _get_reward(self):
-        ob = self._get_obs()
-        theta1, theta2 = ob[1:3]
-        v1, v2 = self.sim.data.qvel[1:3]
-        vel_penalty = 0.1 * abs(v1) + 0.1 * abs(v1)
-        return (math.cos(theta1) + math.cos(theta1 + theta2) + 2 - vel_penalty) / 4
+    def get_single_reward_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs
+        y = math.cos(theta1) + math.cos(theta1 + theta2)
+        vel_penalty = 0.1 * abs(omega1) + 0.1 * abs(omega2)
+        return (y + 2 - vel_penalty) / 4
 
-    def _is_terminal(self) -> bool:
-        v1, v2 = self.sim.data.qvel[1:3]
-        notdone = abs(v1) < 1e4 and abs(v2) < 1e4
+    def get_single_terminal_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs
+        notdone = np.isfinite(next_obs).all() and (abs(omega1) < 1e5 and abs(omega2) < 1e5)
         return not notdone
 
 
@@ -151,18 +150,16 @@ class BoundaryInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
         self.set_state(qpos, qvel)
         return self._get_obs()
 
-    def _get_reward(self):
-        ob = self._get_obs()
-        theta1, theta2 = ob[1:3]
-        v1, v2 = self.sim.data.qvel[1:3]
-        vel_penalty = 0.1 * abs(v1) + 0.1 * abs(v1)
-        return (math.cos(theta1) + math.cos(theta1 + theta2) + 2 - vel_penalty) / 4
+    def get_single_reward_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs
+        y = math.cos(theta1) + math.cos(theta1 + theta2)
+        vel_penalty = 0.1 * abs(omega1) + 0.1 * abs(omega2)
+        return (y + 2 - vel_penalty) / 4
 
-    def _is_terminal(self) -> bool:
-        ob = self._get_obs()
-        v1, v2 = self.sim.data.qvel[1:3]
+    def get_single_terminal_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs
         x_left, x_right = self.model.jnt_range[0]
-        notdone = abs(v1) < 1e4 and abs(v2) < 1e4 and (x_left < ob[0] < x_right)
+        notdone = np.isfinite(next_obs).all() and (x_left < x < x_right) and (abs(omega1) < 1e5 and abs(omega2) < 1e5)
         return not notdone
 
 
