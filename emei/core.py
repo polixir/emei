@@ -178,7 +178,8 @@ class Downloadable(object):
     def get_dataset(self, dataset_name):
         assert dataset_name in self.offline_dataset_names
 
-        param, dataset_type = dataset_name.split("-")
+        joint_pos = dataset_name.find("-")
+        param, dataset_type = dataset_name[:joint_pos], dataset_name[joint_pos+1:]
         url = self.data_url[param][dataset_type]
         h5path = download_dataset_from_url(url)
 
