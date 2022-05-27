@@ -57,6 +57,7 @@ class BaseMujocoEnv(FreezableEnv, Downloadable):
             fullpath = os.path.join(os.path.dirname(__file__), "assets", model_path)
         if not path.exists(fullpath):
             raise OSError(f"File {fullpath} does not exist")
+        self.time_step = time_step
         self.freq_rate = freq_rate
         self.model = mujoco_py.load_model_from_path(fullpath)
         self._update_model()
@@ -119,7 +120,7 @@ class BaseMujocoEnv(FreezableEnv, Downloadable):
     def step(self, action):
         self.do_simulation(action, self.freq_rate)
         obs = self._get_obs()
-        return obs, self.get_single_reward_by_next_obs(obs), self.get_single_terminal_by_next_obs(obs), {}
+        return obs, self.get_reward_by_next_obs(obs), self.get_terminal_by_next_obs(obs), {}
 
     def _set_action_space(self):
         bounds = self.model.actuator_ctrlrange.copy().astype(np.float32)
@@ -185,12 +186,13 @@ class BaseMujocoEnv(FreezableEnv, Downloadable):
 
         self.sim.data.ctrl[:] = ctrl
         for _ in range(n_frames):
-            old_qpos, old_qvel = self.sim.data.qpos, self.sim.data.qvel
+            old_qpos, old_qvel = self.sim.data.qpos.copy(), self.sim.data.qvel.copy()
             self.sim.step()
             if self.standard_euler:
                 new_qpos = old_qpos + old_qvel * self.model.opt.timestep
                 new_qvel = self.sim.data.qvel
                 self.set_state(new_qpos, new_qvel)
+
 
     def render(
             self,

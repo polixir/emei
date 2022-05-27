@@ -5,6 +5,7 @@ import urllib.request
 from abc import ABC, abstractmethod
 from gym import Env
 import numpy as np
+import numba as nb
 from tqdm import tqdm
 from emei.offline_info import URL_INFOS
 from collections import defaultdict
@@ -72,11 +73,11 @@ class FreezableEnv(ABC, Env):
             return next_obs_list, reward_list, done_list, info_list
 
     @abstractmethod
-    def get_single_reward_by_next_obs(self, next_obs):
+    def get_batch_reward_by_next_obs(self, next_obs):
         pass
 
     @abstractmethod
-    def get_single_terminal_by_next_obs(self, next_obs):
+    def get_batch_terminal_by_next_obs(self, next_obs):
         pass
 
     def get_reward_by_next_obs(self, next_obs):
@@ -86,12 +87,10 @@ class FreezableEnv(ABC, Env):
         :return: single or batch reward.
         """
         if len(next_obs.shape) == 1:  # single obs
-            return self.get_single_reward_by_next_obs(next_obs)
+            batch_next_obs = next_obs.reshape(1, next_obs.shape[0])
+            return self.get_batch_reward_by_next_obs(batch_next_obs)[0, 0]
         else:
-            reward_list = []
-            for i in range(next_obs.shape[0]):
-                reward_list.append(self.get_single_reward_by_next_obs(next_obs))
-            return reward_list
+            return self.get_batch_reward_by_next_obs(next_obs)
 
     def get_terminal_by_next_obs(self, next_obs):
         """
@@ -100,12 +99,10 @@ class FreezableEnv(ABC, Env):
         :return: single or batch terminal.
         """
         if len(next_obs.shape) == 1:  # single obs
-            return self.get_single_terminal_by_next_obs(next_obs)
+            batch_next_obs = next_obs.reshape(1, next_obs.shape[0])
+            return self.get_batch_terminal_by_next_obs(batch_next_obs)[0, 0]
         else:
-            terminal_list = []
-            for i in range(next_obs.shape[0]):
-                terminal_list.append(self.get_single_terminal_by_next_obs(next_obs))
-            return terminal_list
+            return self.get_batch_terminal_by_next_obs(next_obs)
 
     # @abstractmethod
     # def get_initial_obs(self, batch_size=1):

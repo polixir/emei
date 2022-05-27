@@ -108,13 +108,12 @@ class CartPoleHoldingEnv(BaseCartPoleEnv):
     def _extract_action(self, action):
         return self.force_mag if action == 1 else -self.force_mag
 
-    def get_single_terminal_by_next_obs(self, next_obs):
-        return not (-self.x_threshold < next_obs[0] < self.x_threshold and
-                    -self.theta_threshold_radians < next_obs[2] < self.theta_threshold_radians)
+    def get_batch_terminal_by_next_obs(self, next_obs):
+        notdone = (np.abs(next_obs[:, 2]) < self.theta_threshold_radians) & (np.abs(next_obs[:, 0]) < self.x_threshold)
+        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
-    def get_single_reward_by_next_obs(self, next_obs):
-
-        return 1.0
+    def get_batch_reward_by_next_obs(self, next_obs):
+        return np.ones([next_obs.shape[0], 1])
 
     def _get_initial_state(self):
         return self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
@@ -129,11 +128,13 @@ class CartPoleSwingUpEnv(BaseCartPoleEnv):
     def _extract_action(self, action):
         return self.force_mag if action == 1 else -self.force_mag
 
-    def get_single_terminal_by_next_obs(self, next_obs):
-        return not (-self.x_threshold < next_obs[0] < self.x_threshold)
+    def get_batch_terminal_by_next_obs(self, next_obs):
+        notdone = (np.abs(next_obs[:, 0]) < self.x_threshold)
+        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
-    def get_single_reward_by_next_obs(self, next_obs):
-        return (math.cos(next_obs[2]) + 1) / 2
+    def get_batch_reward_by_next_obs(self, next_obs):
+        rewards = (np.cos(next_obs[:, 2]) + 1) / 2
+        return rewards.reshape([next_obs.shape[0], 1])
 
     def _get_initial_state(self):
         init_state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,)) + [0, 0, np.pi, 0]
@@ -149,12 +150,12 @@ class ContinuousCartPoleHoldingEnv(BaseCartPoleEnv):
     def _extract_action(self, action):
         return self.force_mag * action[0]
 
-    def get_single_terminal_by_next_obs(self, next_obs):
-        return not (-self.x_threshold < next_obs[0] < self.x_threshold and
-                    -self.theta_threshold_radians < next_obs[2] < self.theta_threshold_radians)
+    def get_batch_terminal_by_next_obs(self, next_obs):
+        notdone = (np.abs(next_obs[:, 2]) < self.theta_threshold_radians) & (np.abs(next_obs[:, 0]) < self.x_threshold)
+        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
-    def get_single_reward_by_next_obs(self, next_obs):
-        return 1.0
+    def get_batch_reward_by_next_obs(self, next_obs):
+        return np.ones([next_obs.shape[0], 1])
 
     def _get_initial_state(self):
         return self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
@@ -170,11 +171,13 @@ class ContinuousCartPoleSwingUpEnv(BaseCartPoleEnv):
     def _extract_action(self, action):
         return self.force_mag * action[0]
 
-    def get_single_terminal_by_next_obs(self, next_obs):
-        return not (-self.x_threshold < next_obs[0] < self.x_threshold)
+    def get_batch_terminal_by_next_obs(self, next_obs):
+        notdone = (np.abs(next_obs[:, 0]) < self.x_threshold)
+        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
-    def get_single_reward_by_next_obs(self, next_obs):
-        return (math.cos(next_obs[2]) + 1) / 2
+    def get_batch_reward_by_next_obs(self, next_obs):
+        rewards = (np.cos(next_obs[:, 2]) + 1) / 2
+        return rewards.reshape([next_obs.shape[0], 1])
 
     def _get_initial_state(self):
         init_state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,)) + [0, 0, np.pi, 0]
@@ -184,5 +187,5 @@ class ContinuousCartPoleSwingUpEnv(BaseCartPoleEnv):
 if __name__ == '__main__':
     from emei.util import random_policy_test
 
-    env = ContinuousCartPoleHoldingEnv()
+    env = ContinuousCartPoleSwingUpEnv()
     random_policy_test(env, is_render=True)

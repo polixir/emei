@@ -32,6 +32,10 @@ class BaseInvertedPendulumEnv(BaseMujocoEnv, utils.EzPickle):
         v.cam.trackbodyid = 0
         v.cam.distance = self.model.stat.extent
 
+    def x_in_range(self, x):
+        x_left, x_right = self.model.jnt_range[0]
+        return (x_left < x) & (x < x_right)
+
 
 class ReboundInvertedPendulumHoldingEnv(BaseInvertedPendulumEnv):
     def __init__(self,
@@ -43,12 +47,12 @@ class ReboundInvertedPendulumHoldingEnv(BaseInvertedPendulumEnv):
                                          time_step=time_step,
                                          integrator=integrator)
 
-    def get_single_reward_by_next_obs(self, next_obs):
-        return 1.0
+    def get_batch_reward_by_next_obs(self, next_obs):
+        return np.ones([next_obs.shape[0], 1])
 
-    def get_single_terminal_by_next_obs(self, next_obs):
-        notdone = np.isfinite(next_obs).all() and (np.abs(next_obs[1]) <= 0.2)
-        return not notdone
+    def get_batch_terminal_by_next_obs(self, next_obs):
+        notdone = (np.abs(next_obs[:, 1]) <= 0.2) & np.isfinite(next_obs).all(axis=1)
+        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
 
 class BoundaryInvertedPendulumHoldingEnv(BaseInvertedPendulumEnv):
@@ -61,13 +65,13 @@ class BoundaryInvertedPendulumHoldingEnv(BaseInvertedPendulumEnv):
                                          time_step=time_step,
                                          integrator=integrator)
 
-    def get_single_reward_by_next_obs(self, next_obs):
-        return 1.0
+    def get_batch_reward_by_next_obs(self, next_obs):
+        return np.ones([next_obs.shape[0], 1])
 
-    def get_single_terminal_by_next_obs(self, next_obs):
-        x_left, x_right = self.model.jnt_range[0]
-        notdone = np.isfinite(next_obs).all() and (np.abs(next_obs[1]) <= 0.2) and (x_left < next_obs[0] < x_right)
-        return not notdone
+    def get_batch_terminal_by_next_obs(self, next_obs):
+        notdone = (np.abs(next_obs[:, 1]) <= 0.2) & self.x_in_range(next_obs[:, 0]) & \
+                  np.isfinite(next_obs).all(axis=1)
+        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
 
 class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
@@ -97,14 +101,15 @@ class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
         self.set_state(qpos, qvel)
         return self._get_obs()
 
-    def get_single_reward_by_next_obs(self, next_obs):
-        omega = next_obs[3]
+    def get_batch_reward_by_next_obs(self, next_obs):
+        omega = next_obs[:, 3]
         vel_penalty = 0.1 * abs(omega)
-        return (math.cos(next_obs[1]) + 1 - vel_penalty) / 2
+        rewards = (np.cos(next_obs[:, 1]) + 1 - vel_penalty) / 2
+        return rewards.reshape([next_obs.shape[0], 1])
 
-    def get_single_terminal_by_next_obs(self, next_obs):
-        notdone = np.isfinite(next_obs).all()
-        return not notdone
+    def get_batch_terminal_by_next_obs(self, next_obs):
+        notdone = np.isfinite(next_obs).all(axis=1)
+        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
 
 class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
@@ -134,23 +139,19 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
         self.set_state(qpos, qvel)
         return self._get_obs()
 
-    def get_single_reward_by_next_obs(self, next_obs):
-        omega = next_obs[3]
+    def get_batch_reward_by_next_obs(self, next_obs):
+        omega = next_obs[:, 3]
         vel_penalty = 0.1 * abs(omega)
-        return (math.cos(next_obs[1]) + 1 - vel_penalty) / 2
+        rewards = (np.cos(next_obs[:, 1]) + 1 - vel_penalty) / 2
+        return rewards.reshape([next_obs.shape[0], 1])
 
-    def get_single_terminal_by_next_obs(self, next_obs):
-        x_left, x_right = self.model.jnt_range[0]
-        notdone = np.isfinite(next_obs).all() and (x_left < next_obs[0] < x_right)
-        return not notdone
+    def get_batch_terminal_by_next_obs(self, next_obs):
+        notdone = self.x_in_range(next_obs[:, 0]) & np.isfinite(next_obs).all(axis=1)
+        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
 
 if __name__ == '__main__':
     from emei.util import random_policy_test
 
-    env = BoundaryInvertedPendulumHoldingEnv()
-    random_policy_test(env, is_render=True)
-
-    # d = env.get_dataset('freq_rate=1&time_step=0.02-expert')
-    # print(sum(d["terminals"]) / len(d["terminals"]))
-    # random_policy_test(env, is_render=True)
+    env = BoundaryInvertedPendulumSwingUpEnv()
+    random_policy_test(env)

@@ -1,7 +1,6 @@
 import numpy as np
 from gym import utils
 from emei.envs.mujoco.base_mujoco import BaseMujocoEnv
-import math
 import os
 
 
@@ -31,6 +30,10 @@ class BaseInvertedDoublePendulumEnv(BaseMujocoEnv, utils.EzPickle):
         v.cam.distance = self.model.stat.extent * 0.5
         v.cam.lookat[2] = 0.1225
 
+    def x_in_range(self, x):
+        x_left, x_right = self.model.jnt_range[0]
+        return (x_left < x) & (x < x_right)
+
 
 class ReboundInvertedDoublePendulumHoldingEnv(BaseInvertedDoublePendulumEnv):
     def __init__(self,
@@ -42,19 +45,19 @@ class ReboundInvertedDoublePendulumHoldingEnv(BaseInvertedDoublePendulumEnv):
                                                time_step=time_step,
                                                integrator=integrator)
 
-    def get_single_reward_by_next_obs(self, next_obs):
-        x, theta1, theta2, v, omega1, omega2 = next_obs
-        y = math.cos(theta1) + math.cos(theta1 + theta2)
+    def get_batch_reward_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs.T
+        y = np.cos(theta1) + np.cos(theta1 + theta2)
         dist_penalty = 0.01 * x ** 2 + (y - 2) ** 2
         vel_penalty = 1e-3 * omega1 ** 2 + 5e-3 * omega2 ** 2
-        alive_bonus = 10
-        return (alive_bonus - dist_penalty - vel_penalty) / 10
+        rewards = 1 - (dist_penalty + vel_penalty) / 10
+        return rewards.reshape([next_obs.shape[0], 1])
 
-    def get_single_terminal_by_next_obs(self, next_obs):
-        x, theta1, theta2, v, omega1, omega2 = next_obs
-        y = math.cos(theta1) + math.cos(theta1 + theta2)
-        notdone = np.isfinite(next_obs).all() and y > 1.5 and (abs(omega1) < 1e5 and abs(omega2) < 1e5)
-        return not notdone
+    def get_batch_terminal_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs.T
+        y = np.cos(theta1) + np.cos(theta1 + theta2)
+        notdone = np.isfinite(next_obs).all(axis=1) & (y > 1.5) & (np.abs(omega1) < 1e5) & (np.abs(omega2) < 1e5)
+        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
 
 class BoundaryInvertedDoublePendulumHoldingEnv(BaseInvertedDoublePendulumEnv):
@@ -67,21 +70,20 @@ class BoundaryInvertedDoublePendulumHoldingEnv(BaseInvertedDoublePendulumEnv):
                                                time_step=time_step,
                                                integrator=integrator)
 
-    def get_single_reward_by_next_obs(self, next_obs):
-        x, theta1, theta2, v, omega1, omega2 = next_obs
-        y = math.cos(theta1) + math.cos(theta1 + theta2)
+    def get_batch_reward_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs.T
+        y = np.cos(theta1) + np.cos(theta1 + theta2)
         dist_penalty = 0.01 * x ** 2 + (y - 2) ** 2
         vel_penalty = 1e-3 * omega1 ** 2 + 5e-3 * omega2 ** 2
-        alive_bonus = 10
-        return (alive_bonus - dist_penalty - vel_penalty) / 10
+        rewards = 1 - (dist_penalty + vel_penalty) / 10
+        return rewards.reshape([next_obs.shape[0], 1])
 
-    def get_single_terminal_by_next_obs(self, next_obs):
-        x, theta1, theta2, v, omega1, omega2 = next_obs
-        x_left, x_right = self.model.jnt_range[0]
-        y = math.cos(theta1) + math.cos(theta1 + theta2)
-        notdone = np.isfinite(next_obs).all() and (x_left < x < x_right) and y > 1.5 and (
-                abs(omega1) < 1e5 and abs(omega2) < 1e5)
-        return not notdone
+    def get_batch_terminal_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs.T
+        y = np.cos(theta1) + np.cos(theta1 + theta2)
+        notdone = np.isfinite(next_obs).all(axis=1) & (y > 1.5) & (np.abs(omega1) < 1e5) & (
+                np.abs(omega2) < 1e5) & self.x_in_range(x)
+        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
 
 class ReboundInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
@@ -111,16 +113,17 @@ class ReboundInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
         self.set_state(qpos, qvel)
         return self._get_obs()
 
-    def get_single_reward_by_next_obs(self, next_obs):
-        x, theta1, theta2, v, omega1, omega2 = next_obs
-        y = math.cos(theta1) + math.cos(theta1 + theta2)
-        vel_penalty = 0.1 * abs(omega1) + 0.1 * abs(omega2)
-        return (y + 2 - vel_penalty) / 4
+    def get_batch_reward_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs.T
+        y = np.cos(theta1) + np.cos(theta1 + theta2)
+        vel_penalty = 0.1 * np.abs(omega1) + 0.1 * np.abs(omega2)
+        rewards = (y + 2 - vel_penalty) / 4
+        return rewards.reshape([next_obs.shape[0], 1])
 
-    def get_single_terminal_by_next_obs(self, next_obs):
-        x, theta1, theta2, v, omega1, omega2 = next_obs
-        notdone = np.isfinite(next_obs).all() and (abs(omega1) < 1e5 and abs(omega2) < 1e5)
-        return not notdone
+    def get_batch_terminal_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs.T
+        notdone = np.isfinite(next_obs).all(axis=1) & (np.abs(omega1) < 1e5) & (np.abs(omega2) < 1e5)
+        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
 
 class BoundaryInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
@@ -150,17 +153,18 @@ class BoundaryInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
         self.set_state(qpos, qvel)
         return self._get_obs()
 
-    def get_single_reward_by_next_obs(self, next_obs):
-        x, theta1, theta2, v, omega1, omega2 = next_obs
-        y = math.cos(theta1) + math.cos(theta1 + theta2)
-        vel_penalty = 0.1 * abs(omega1) + 0.1 * abs(omega2)
-        return (y + 2 - vel_penalty) / 4
+    def get_batch_reward_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs.T
+        y = np.cos(theta1) + np.cos(theta1 + theta2)
+        vel_penalty = 0.1 * np.abs(omega1) + 0.1 * np.abs(omega2)
+        rewards = (y + 2 - vel_penalty) / 4
+        return rewards.reshape([next_obs.shape[0], 1])
 
-    def get_single_terminal_by_next_obs(self, next_obs):
-        x, theta1, theta2, v, omega1, omega2 = next_obs
-        x_left, x_right = self.model.jnt_range[0]
-        notdone = np.isfinite(next_obs).all() and (x_left < x < x_right) and (abs(omega1) < 1e5 and abs(omega2) < 1e5)
-        return not notdone
+    def get_batch_terminal_by_next_obs(self, next_obs):
+        x, theta1, theta2, v, omega1, omega2 = next_obs.T
+        notdone = np.isfinite(next_obs).all(axis=1) & (np.abs(omega1) < 1e5) & (
+                np.abs(omega2) < 1e5) & self.x_in_range(x)
+        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
 
 if __name__ == '__main__':
