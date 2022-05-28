@@ -1,0 +1,10 @@
+name: "ReboundInvertedPendulumHolding-v0"
+
+eval_freq: 1000
+batch_size: 256
+
+medium_timesteps: 10000
+expert_timesteps: 20000
+random_samples: 50000
+medium_samples: 50000
+expert_samples: 50000
