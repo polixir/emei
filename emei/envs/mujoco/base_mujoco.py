@@ -105,14 +105,14 @@ class BaseMujocoEnv(FreezableEnv, Downloadable):
         self.sim.set_state(self.frozen_state)
         self.sim.forward()
 
-    def restore_pos_vel_from_obs(self, obs):
+    def _restore_pos_vel_from_obs(self, obs):
         if obs.shape == (self.model.nq + self.model.nv,):
             return obs[:self.model.nq], obs[self.model.nq:]
         else:
             raise NotImplementedError
 
     def _set_state_by_obs(self, obs):
-        self.set_state(*self.restore_pos_vel_from_obs(obs))
+        self.set_state(*self._restore_pos_vel_from_obs(obs))
 
     def _get_obs(self):
         return np.concatenate([self.sim.data.qpos, self.sim.data.qvel]).ravel()

@@ -36,6 +36,14 @@ class BaseInvertedPendulumEnv(BaseMujocoEnv, utils.EzPickle):
         x_left, x_right = self.model.jnt_range[0]
         return (x_left < x) & (x < x_right)
 
+    @property
+    def causal_graph(self):
+        return np.array([[0, 0, 1, 0, 0],  # dot x
+                         [0, 0, 0, 1, 0],  # dot theta
+                         [0, 1, 0, 1, 1],  # dot v
+                         [0, 1, 0, 1, 1],  # dot omega
+                         [0, 0, 0, 0, 0]])  # reward
+
 
 class ReboundInvertedPendulumHoldingEnv(BaseInvertedPendulumEnv):
     def __init__(self,
@@ -102,14 +110,18 @@ class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
         return self._get_obs()
 
     def get_batch_reward_by_next_obs(self, next_obs):
-        omega = next_obs[:, 3]
-        vel_penalty = 0.1 * abs(omega)
-        rewards = (np.cos(next_obs[:, 1]) + 1 - vel_penalty) / 2
+        rewards = (np.cos(next_obs[:, 1]) + 1) / 2
         return rewards.reshape([next_obs.shape[0], 1])
 
     def get_batch_terminal_by_next_obs(self, next_obs):
         notdone = np.isfinite(next_obs).all(axis=1)
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
+
+    @property
+    def causal_graph(self):
+        graph = super(ReboundInvertedPendulumSwingUpEnv, self).causal_graph.copy()
+        graph[-1] = [0, 1, 0, 1, 0]
+        return graph
 
 
 class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
@@ -140,18 +152,23 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
         return self._get_obs()
 
     def get_batch_reward_by_next_obs(self, next_obs):
-        omega = next_obs[:, 3]
-        vel_penalty = 0.1 * abs(omega)
-        rewards = (np.cos(next_obs[:, 1]) + 1 - vel_penalty) / 2
+        rewards = (np.cos(next_obs[:, 1]) + 1) / 2
         return rewards.reshape([next_obs.shape[0], 1])
 
     def get_batch_terminal_by_next_obs(self, next_obs):
         notdone = self.x_in_range(next_obs[:, 0]) & np.isfinite(next_obs).all(axis=1)
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
+    @property
+    def causal_graph(self):
+        graph = super(BoundaryInvertedPendulumSwingUpEnv, self).causal_graph.copy()
+        graph[-1] = [0, 1, 0, 1, 0]
+        return graph
+
 
 if __name__ == '__main__':
     from emei.util import random_policy_test
 
-    env = BoundaryInvertedPendulumSwingUpEnv()
-    random_policy_test(env)
+    env = ReboundInvertedPendulumSwingUpEnv()
+    print(env.causal_graph)
+    random_policy_test(env, is_render=True)

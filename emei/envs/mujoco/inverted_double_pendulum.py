@@ -34,6 +34,16 @@ class BaseInvertedDoublePendulumEnv(BaseMujocoEnv, utils.EzPickle):
         x_left, x_right = self.model.jnt_range[0]
         return (x_left < x) & (x < x_right)
 
+    @property
+    def causal_graph(self):
+        return np.array([[0, 0, 0, 1, 0, 0, 0],  # dot x
+                         [0, 0, 0, 0, 1, 0, 0],  # dot theta1
+                         [0, 0, 0, 0, 0, 1, 0],  # dot theta2
+                         [0, 1, 1, 0, 1, 1, 1],  # dot v
+                         [0, 1, 1, 0, 1, 1, 1],  # dot v
+                         [0, 1, 1, 0, 1, 1, 1],  # dot omega
+                         [0, 0, 0, 0, 0, 0, 0]])  # reward
+
 
 class ReboundInvertedDoublePendulumHoldingEnv(BaseInvertedDoublePendulumEnv):
     def __init__(self,
@@ -46,17 +56,12 @@ class ReboundInvertedDoublePendulumHoldingEnv(BaseInvertedDoublePendulumEnv):
                                                integrator=integrator)
 
     def get_batch_reward_by_next_obs(self, next_obs):
-        x, theta1, theta2, v, omega1, omega2 = next_obs.T
-        y = np.cos(theta1) + np.cos(theta1 + theta2)
-        dist_penalty = 0.01 * x ** 2 + (y - 2) ** 2
-        vel_penalty = 1e-3 * omega1 ** 2 + 5e-3 * omega2 ** 2
-        rewards = 1 - (dist_penalty + vel_penalty) / 10
-        return rewards.reshape([next_obs.shape[0], 1])
+        return np.ones([next_obs.shape[0], 1])
 
     def get_batch_terminal_by_next_obs(self, next_obs):
         x, theta1, theta2, v, omega1, omega2 = next_obs.T
         y = np.cos(theta1) + np.cos(theta1 + theta2)
-        notdone = np.isfinite(next_obs).all(axis=1) & (y > 1.5) & (np.abs(omega1) < 1e5) & (np.abs(omega2) < 1e5)
+        notdone = np.isfinite(next_obs).all(axis=1) & (y > 1.5)
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
 
@@ -71,18 +76,12 @@ class BoundaryInvertedDoublePendulumHoldingEnv(BaseInvertedDoublePendulumEnv):
                                                integrator=integrator)
 
     def get_batch_reward_by_next_obs(self, next_obs):
-        x, theta1, theta2, v, omega1, omega2 = next_obs.T
-        y = np.cos(theta1) + np.cos(theta1 + theta2)
-        dist_penalty = 0.01 * x ** 2 + (y - 2) ** 2
-        vel_penalty = 1e-3 * omega1 ** 2 + 5e-3 * omega2 ** 2
-        rewards = 1 - (dist_penalty + vel_penalty) / 10
-        return rewards.reshape([next_obs.shape[0], 1])
+        return np.ones([next_obs.shape[0], 1])
 
     def get_batch_terminal_by_next_obs(self, next_obs):
         x, theta1, theta2, v, omega1, omega2 = next_obs.T
         y = np.cos(theta1) + np.cos(theta1 + theta2)
-        notdone = np.isfinite(next_obs).all(axis=1) & (y > 1.5) & (np.abs(omega1) < 1e5) & (
-                np.abs(omega2) < 1e5) & self.x_in_range(x)
+        notdone = np.isfinite(next_obs).all(axis=1) & (y > 1.5) & self.x_in_range(x)
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
 
@@ -116,14 +115,19 @@ class ReboundInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
     def get_batch_reward_by_next_obs(self, next_obs):
         x, theta1, theta2, v, omega1, omega2 = next_obs.T
         y = np.cos(theta1) + np.cos(theta1 + theta2)
-        vel_penalty = 0.1 * np.abs(omega1) + 0.1 * np.abs(omega2)
-        rewards = (y + 2 - vel_penalty) / 4
+        rewards = (y + 2) / 4
         return rewards.reshape([next_obs.shape[0], 1])
 
     def get_batch_terminal_by_next_obs(self, next_obs):
         x, theta1, theta2, v, omega1, omega2 = next_obs.T
-        notdone = np.isfinite(next_obs).all(axis=1) & (np.abs(omega1) < 1e5) & (np.abs(omega2) < 1e5)
+        notdone = np.isfinite(next_obs).all(axis=1)
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
+
+    @property
+    def causal_graph(self):
+        graph = super(ReboundInvertedDoublePendulumSwingUpEnv, self).causal_graph.copy()
+        graph[-1] = [0, 1, 1, 0, 1, 1, 0]
+        return graph
 
 
 class BoundaryInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
@@ -156,19 +160,23 @@ class BoundaryInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
     def get_batch_reward_by_next_obs(self, next_obs):
         x, theta1, theta2, v, omega1, omega2 = next_obs.T
         y = np.cos(theta1) + np.cos(theta1 + theta2)
-        vel_penalty = 0.1 * np.abs(omega1) + 0.1 * np.abs(omega2)
-        rewards = (y + 2 - vel_penalty) / 4
+        rewards = (y + 2) / 4
         return rewards.reshape([next_obs.shape[0], 1])
 
     def get_batch_terminal_by_next_obs(self, next_obs):
         x, theta1, theta2, v, omega1, omega2 = next_obs.T
-        notdone = np.isfinite(next_obs).all(axis=1) & (np.abs(omega1) < 1e5) & (
-                np.abs(omega2) < 1e5) & self.x_in_range(x)
+        notdone = np.isfinite(next_obs).all(axis=1) & self.x_in_range(x)
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
+
+    @property
+    def causal_graph(self):
+        graph = super(BoundaryInvertedDoublePendulumSwingUpEnv, self).causal_graph.copy()
+        graph[-1] = [0, 1, 1, 0, 1, 1, 0]
+        return graph
 
 
 if __name__ == '__main__':
     from emei.util import random_policy_test
 
-    env = ReboundInvertedDoublePendulumSwingUpEnv()
+    env = ReboundInvertedDoublePendulumHoldingEnv()
     random_policy_test(env, is_render=True)
