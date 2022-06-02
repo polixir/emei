@@ -93,9 +93,9 @@ class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
                                          integrator=integrator)
 
     def _update_model(self):
-        self.model.stat.extent = 6
-        self.model.geom_size[0][1] = 3
-        self.model.jnt_range[0] = [-3, 3]
+        self.model.stat.extent = 4
+        self.model.geom_size[0][1] = 2
+        self.model.jnt_range[0] = [-2, 2]
         self.model.jnt_range[1] = [-np.inf, np.inf]
 
     def reset_model(self):
@@ -135,9 +135,9 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
                                          integrator=integrator)
 
     def _update_model(self):
-        self.model.stat.extent = 6
-        self.model.geom_size[0][1] = 3
-        self.model.jnt_range[0] = [-3, 3]
+        self.model.stat.extent = 4
+        self.model.geom_size[0][1] = 2
+        self.model.jnt_range[0] = [-2, 2]
         self.model.jnt_range[1] = [-np.inf, np.inf]
 
     def reset_model(self):

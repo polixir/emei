@@ -5,7 +5,6 @@ import urllib.request
 from abc import ABC, abstractmethod
 from gym import Env
 import numpy as np
-import numba as nb
 from tqdm import tqdm
 from emei.offline_info import URL_INFOS
 from collections import defaultdict
