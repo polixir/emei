@@ -170,5 +170,6 @@ if __name__ == '__main__':
     from emei.util import random_policy_test
 
     env = ReboundInvertedPendulumSwingUpEnv()
-    print(env.causal_graph)
+    # print(env.causal_graph)
     random_policy_test(env, is_render=True)
+    # print(env.dataset_names)

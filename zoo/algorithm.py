@@ -43,4 +43,4 @@ def sac_eval(env_name, model_path):
 
 if __name__ == "__main__":
     sac_eval("BoundaryInvertedPendulumSwingUp-v0",
-             r"C:\Users\frank\Documents\Project\emei\zoo_exp\SAC\default\BoundaryInvertedPendulumSwingUp-v0\2022.05.25\204333\expert_logs\best_model\best_model.zip")
+             r"C:\Users\frank\Documents\Project\emei\zoo_exp\SAC\default\BoundaryInvertedPendulumSwingUp-v0\2022.06.04\194730\expert_logs\best_model\best_model.zip")

@@ -1,5 +1,5 @@
 defaults:
-  - env: cont_cartpole_holding
+  - env: boundary_inverted_pendulum_swing_up
   - _self_
 
 algorithm: "SAC"
