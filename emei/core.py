@@ -5,7 +5,6 @@ import urllib.request
 from abc import ABC, abstractmethod
 from gym import Env
 import numpy as np
-import numba as nb
 from tqdm import tqdm
 from emei.offline_info import URL_INFOS
 from collections import defaultdict
@@ -13,12 +12,22 @@ from collections import defaultdict
 DATASET_PATH = os.path.expanduser('~/.emei/offline_data')
 
 
-class FreezableEnv(ABC, Env):
+class EmeiEnv(ABC, Env):
     def __init__(self):
         """
-        Abstract class for all Emei environments to better support model-based RL.
+        Abstract class for all Emei environments to better support model-based RL and offline RL.
         """
+        # for freezable
         self.frozen_state = None
+        # for downloadable
+        env_name = self.__class__.__name__[:-3]
+        self.offline_dataset_names = []
+        if env_name in URL_INFOS:
+            self.data_url = URL_INFOS[env_name]
+            self.offline_dataset_names = []
+            for param in self.data_url:
+                for dataset in self.data_url[param]:
+                    self.offline_dataset_names.append("{}-{}".format(param, dataset))
 
     @abstractmethod
     def freeze(self):
@@ -70,7 +79,7 @@ class FreezableEnv(ABC, Env):
                 reward_list.append(reward)
                 done_list.append(done)
                 info_list.append(info)
-            return next_obs_list, reward_list, done_list, info_list
+            return np.array(next_obs_list), np.array(reward_list), np.array(done_list), np.array(info_list)
 
     @abstractmethod
     def get_batch_reward_by_next_obs(self, next_obs):
@@ -104,14 +113,48 @@ class FreezableEnv(ABC, Env):
         else:
             return self.get_batch_terminal_by_next_obs(next_obs)
 
-    # @abstractmethod
-    # def get_initial_obs(self, batch_size=1):
-    #     """
-    #     Return the initial observation .
-    #     :param batch_size: batch size of generated data, default is single(batch_size=1).
-    #     :return: single or batch observation.
-    #     """
-    #     pass
+    @property
+    def dataset_names(self):
+        return self.offline_dataset_names
+
+    def get_dataset(self, dataset_name):
+        assert dataset_name in self.offline_dataset_names
+
+        joint_pos = dataset_name.find("-")
+        param, dataset_type = dataset_name[:joint_pos], dataset_name[joint_pos + 1:]
+        url = self.data_url[param][dataset_type]
+        h5path = download_dataset_from_url(url)
+
+        data_dict = {}
+        with h5py.File(h5path, 'r') as dataset_file:
+            for k in tqdm(get_keys(dataset_file), desc="load datafile"):
+                try:  # first try loading as an array
+                    data_dict[k] = dataset_file[k][:]
+                except ValueError as e:  # try loading as a scalar
+                    data_dict[k] = dataset_file[k][()]
+
+        # Run a few quick sanity checks
+        for key in ['observations', 'observations', 'actions', 'rewards', 'terminals', "timeouts"]:
+            assert key in data_dict, 'Dataset is missing key %s' % key
+
+        return data_dict
+
+    def get_sequence_dataset(self, dataset_name):
+        dataset = self.get_dataset(dataset_name)
+        N = dataset['rewards'].shape[0]
+        data = defaultdict(lambda: defaultdict(list))
+
+        sequence_num = 0
+        for i in range(N):
+            done_bool = bool(dataset['terminals'][i])
+            final_timestep = dataset['timeouts'][i]
+
+            for k in dataset:
+                data[sequence_num][k].append(dataset[k][i])
+
+            if done_bool or final_timestep:
+                sequence_num += 1
+        return data
 
 
 def get_keys(h5file):
@@ -136,7 +179,7 @@ def filepath_from_url(dataset_url: str) -> str:
     :param dataset_url: web url.
     :return: local file path.
     """
-    env_name, param, dataset_name = dataset_url.split(os.path.sep)[-3:]
+    env_name, param, dataset_name = dataset_url.split('/')[-3:]
     os.makedirs(os.path.join(DATASET_PATH, env_name, param), exist_ok=True)
     dataset_filepath = os.path.join(DATASET_PATH, env_name, param, dataset_name)
     return dataset_filepath
@@ -155,90 +198,3 @@ def download_dataset_from_url(dataset_url: str) -> str:
     if not os.path.exists(dataset_filepath):
         raise IOError("Failed to download dataset from %s" % dataset_url)
     return dataset_filepath
-
-
-class Downloadable(object):
-    def __init__(self):
-        """
-        Abstract class for all offline Emei environments, which supports offline data download.
-        """
-        env_name = self.__class__.__name__[:-3]
-        self.offline_dataset_names = []
-        if env_name in URL_INFOS:
-            self.data_url = URL_INFOS[env_name]
-            self.offline_dataset_names = []
-            for param in self.data_url:
-                for dataset in self.data_url[param]:
-                    self.offline_dataset_names.append("{}-{}".format(param, dataset))
-
-    @property
-    def dataset_names(self):
-        return self.offline_dataset_names
-
-    def get_dataset(self, dataset_name):
-        assert dataset_name in self.offline_dataset_names
-
-        joint_pos = dataset_name.find("-")
-        param, dataset_type = dataset_name[:joint_pos], dataset_name[joint_pos+1:]
-        url = self.data_url[param][dataset_type]
-        h5path = download_dataset_from_url(url)
-
-        data_dict = {}
-        with h5py.File(h5path, 'r') as dataset_file:
-            for k in tqdm(get_keys(dataset_file), desc="load datafile"):
-                try:  # first try loading as an array
-                    data_dict[k] = dataset_file[k][:]
-                except ValueError as e:  # try loading as a scalar
-                    data_dict[k] = dataset_file[k][()]
-
-        # Run a few quick sanity checks
-        for key in ['observations', 'actions', 'rewards', 'terminals', "timeouts"]:
-            assert key in data_dict, 'Dataset is missing key %s' % key
-
-        return data_dict
-
-    def get_qlearning_dataset(self, dataset_name):
-        dataset = self.get_dataset(dataset_name)
-        N = dataset['rewards'].shape[0]
-        obs_ = []
-        next_obs_ = []
-        action_ = []
-        reward_ = []
-        done_ = []
-
-        for i in range(N - 1):
-            obs = dataset['observations'][i].astype(np.float32)
-            new_obs = dataset['observations'][i + 1].astype(np.float32)
-            action = dataset['actions'][i].astype(np.float32)
-            reward = dataset['rewards'][i].astype(np.float32)
-            done_bool = bool(dataset['terminals'][i])
-
-            obs_.append(obs)
-            next_obs_.append(new_obs)
-            action_.append(action)
-            reward_.append(reward)
-            done_.append(done_bool)
-        return {
-            'observations': np.array(obs_),
-            'actions': np.array(action_),
-            'next_observations': np.array(next_obs_),
-            'rewards': np.array(reward_),
-            'terminals': np.array(done_),
-        }
-
-    def get_sequence_dataset(self, dataset_name):
-        dataset = self.get_dataset(dataset_name)
-        N = dataset['rewards'].shape[0]
-        data = defaultdict(lambda: defaultdict(list))
-
-        sequence_num = 0
-        for i in range(N):
-            done_bool = bool(dataset['terminals'][i])
-            final_timestep = dataset['timeouts'][i]
-
-            for k in dataset:
-                data[sequence_num][k].append(dataset[k][i])
-
-            if done_bool or final_timestep:
-                sequence_num += 1
-        return data

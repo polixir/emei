@@ -7,7 +7,7 @@ from gym import error, spaces
 import numpy as np
 from os import path
 import gym
-from emei import FreezableEnv, Downloadable
+from emei import EmeiEnv
 
 try:
     import mujoco_py
@@ -41,7 +41,7 @@ def convert_observation_to_space(observation):
     return space
 
 
-class BaseMujocoEnv(FreezableEnv, Downloadable):
+class BaseMujocoEnv(EmeiEnv):
     """Superclass for all MuJoCo environments."""
 
     def __init__(self,
@@ -49,8 +49,7 @@ class BaseMujocoEnv(FreezableEnv, Downloadable):
                  freq_rate: int = 1,
                  time_step: float = 0.02,
                  integrator="standard_euler"):
-        FreezableEnv.__init__(self)
-        Downloadable.__init__(self)
+        EmeiEnv.__init__(self)
         if model_path.startswith("/"):
             fullpath = model_path
         else:

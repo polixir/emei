@@ -40,7 +40,7 @@ class BaseInvertedPendulumEnv(BaseMujocoEnv, utils.EzPickle):
     def causal_graph(self):
         return np.array([[0, 0, 1, 0, 0],  # dot x
                          [0, 0, 0, 1, 0],  # dot theta
-                         [0, 1, 0, 1, 1],  # dot v
+                         [0, 1, 1, 1, 1],  # dot v
                          [0, 1, 0, 1, 1],  # dot omega
                          [0, 0, 0, 0, 0]])  # reward
 
@@ -93,9 +93,9 @@ class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
                                          integrator=integrator)
 
     def _update_model(self):
-        self.model.stat.extent = 6
-        self.model.geom_size[0][1] = 3
-        self.model.jnt_range[0] = [-3, 3]
+        self.model.stat.extent = 4
+        self.model.geom_size[0][1] = 2
+        self.model.jnt_range[0] = [-2, 2]
         self.model.jnt_range[1] = [-np.inf, np.inf]
 
     def reset_model(self):
@@ -135,9 +135,9 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
                                          integrator=integrator)
 
     def _update_model(self):
-        self.model.stat.extent = 6
-        self.model.geom_size[0][1] = 3
-        self.model.jnt_range[0] = [-3, 3]
+        self.model.stat.extent = 4
+        self.model.geom_size[0][1] = 2
+        self.model.jnt_range[0] = [-2, 2]
         self.model.jnt_range[1] = [-np.inf, np.inf]
 
     def reset_model(self):
@@ -169,6 +169,7 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
 if __name__ == '__main__':
     from emei.util import random_policy_test
 
-    env = ReboundInvertedPendulumSwingUpEnv()
-    print(env.causal_graph)
+    env = BoundaryInvertedPendulumSwingUpEnv()
+    # print(env.causal_graph)
     random_policy_test(env, is_render=True)
+    # print(env.dataset_names)

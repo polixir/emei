@@ -1,2 +1,2 @@
-from emei.core import FreezableEnv, Downloadable
+from emei.core import EmeiEnv
 import emei.envs

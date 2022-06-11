@@ -28,7 +28,7 @@ def sac_eval(env_name, model_path):
 
     while True:
         action, state = model.predict(obs, deterministic=True)
-
+        print(action)
         next_obs, reward, done, info = env.step(action)
         env.render()
         episode_reward += reward
@@ -42,5 +42,5 @@ def sac_eval(env_name, model_path):
 
 
 if __name__ == "__main__":
-    sac_eval("BoundaryInvertedPendulumSwingUp-v0",
-             r"C:\Users\frank\Documents\Project\emei\zoo_exp\SAC\default\BoundaryInvertedPendulumSwingUp-v0\2022.05.25\204333\expert_logs\best_model\best_model.zip")
+    sac_eval("BoundaryInvertedDoublePendulumSwingUp-v0",
+             r"C:\Users\frank\Documents\Project\emei\zoo_exp\zoo_exp\SAC\default\BoundaryInvertedDoublePendulumSwingUp-v0\2022.06.06\214549\medium_logs\best_model\best_model.zip")

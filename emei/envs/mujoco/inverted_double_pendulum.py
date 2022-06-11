@@ -178,5 +178,5 @@ class BoundaryInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
 if __name__ == '__main__':
     from emei.util import random_policy_test
 
-    env = ReboundInvertedDoublePendulumHoldingEnv()
+    env = ReboundInvertedDoublePendulumSwingUpEnv()
     random_policy_test(env, is_render=True)

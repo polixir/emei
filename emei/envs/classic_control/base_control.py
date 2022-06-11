@@ -5,17 +5,16 @@ import numpy as np
 from typing import Union, Optional
 from abc import abstractmethod
 
-from emei import FreezableEnv, Downloadable
+from emei import EmeiEnv
 
 
-class BaseControlEnv(FreezableEnv, Downloadable):
+class BaseControlEnv(EmeiEnv):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
 
     def __init__(self,
                  freq_rate: int = 1,
                  time_step: float = 0.02) -> None:
-        FreezableEnv.__init__(self)
-        Downloadable.__init__(self)
+        EmeiEnv.__init__(self)
         self.freq_rate = freq_rate
         self.time_step = time_step
 
@@ -26,7 +25,6 @@ class BaseControlEnv(FreezableEnv, Downloadable):
         self.state = np.empty(0).astype(self.numpy_dtype)
         self.screen_width = 600
         self.screen_height = 400
-
 
     @abstractmethod
     def _get_update_info(self, action):
