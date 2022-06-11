@@ -40,7 +40,7 @@ class BaseInvertedPendulumEnv(BaseMujocoEnv, utils.EzPickle):
     def causal_graph(self):
         return np.array([[0, 0, 1, 0, 0],  # dot x
                          [0, 0, 0, 1, 0],  # dot theta
-                         [0, 1, 0, 1, 1],  # dot v
+                         [0, 1, 1, 1, 1],  # dot v
                          [0, 1, 0, 1, 1],  # dot omega
                          [0, 0, 0, 0, 0]])  # reward
 
@@ -169,7 +169,7 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
 if __name__ == '__main__':
     from emei.util import random_policy_test
 
-    env = ReboundInvertedPendulumSwingUpEnv()
+    env = BoundaryInvertedPendulumSwingUpEnv()
     # print(env.causal_graph)
     random_policy_test(env, is_render=True)
     # print(env.dataset_names)

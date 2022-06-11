@@ -26,7 +26,6 @@ class BaseControlEnv(EmeiEnv):
         self.screen_width = 600
         self.screen_height = 400
 
-
     @abstractmethod
     def _get_update_info(self, action):
         return []

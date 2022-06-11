@@ -134,43 +134,10 @@ class EmeiEnv(ABC, Env):
                     data_dict[k] = dataset_file[k][()]
 
         # Run a few quick sanity checks
-        for key in ['observations', 'actions', 'rewards', 'terminals', "timeouts"]:
+        for key in ['observations', 'observations', 'actions', 'rewards', 'terminals', "timeouts"]:
             assert key in data_dict, 'Dataset is missing key %s' % key
 
         return data_dict
-
-    def get_qlearning_dataset(self, dataset_name):
-        dataset = self.get_dataset(dataset_name)
-        N = dataset['rewards'].shape[0]
-        obs_ = []
-        next_obs_ = []
-        action_ = []
-        reward_ = []
-        ternimal_ = []
-        timeout_ = []
-
-        for i in range(N - 1):
-            obs = dataset['observations'][i].astype(np.float32)
-            new_obs = dataset['observations'][i + 1].astype(np.float32)
-            action = dataset['actions'][i].astype(np.float32)
-            reward = dataset['rewards'][i].astype(np.float32)
-            terminal_bool = bool(dataset['terminals'][i])
-            timeout_bool = bool(dataset['timeouts'][i])
-
-            obs_.append(obs)
-            next_obs_.append(new_obs)
-            action_.append(action)
-            reward_.append(reward)
-            ternimal_.append(terminal_bool)
-            timeout_.append(timeout_bool)
-        return {
-            'observations': np.array(obs_),
-            'actions': np.array(action_),
-            'next_observations': np.array(next_obs_),
-            'rewards': np.array(reward_),
-            'terminals': np.array(ternimal_),
-            'timeouts': np.array(timeout_)
-        }
 
     def get_sequence_dataset(self, dataset_name):
         dataset = self.get_dataset(dataset_name)
