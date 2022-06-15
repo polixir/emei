@@ -15,7 +15,7 @@ class BaseInvertedDoublePendulumEnv(BaseMujocoEnv, utils.EzPickle):
                  time_step: float = 0.02,
                  integrator="standard_euler",
                  # noise
-                 reset_noise_scale=0.1):
+                 reset_noise_scale=0.2):
         BaseMujocoEnv.__init__(self,
                                model_path="inverted_double_pendulum.xml",
                                freq_rate=freq_rate,
@@ -94,6 +94,7 @@ class ReboundInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
         self.model.geom_size[1][1] = 3
         self.model.jnt_range[0] = [-3, 3]
         self.model.jnt_range[1] = [-np.inf, np.inf]
+        self.model.body_quat[2] = [0, 0, 1, 0]
 
     def get_batch_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
         x, theta1, theta2, v, omega1, omega2 = next_obs.T
@@ -127,6 +128,7 @@ class BoundaryInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
         self.model.geom_size[1][1] = 3
         self.model.jnt_range[0] = [-3, 3]
         self.model.jnt_range[1] = [-np.inf, np.inf]
+        self.model.body_quat[2] = [0, 0, 1, 0]
 
     def get_batch_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
         x, theta1, theta2, v, omega1, omega2 = next_obs.T
@@ -151,5 +153,5 @@ class BoundaryInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
 if __name__ == '__main__':
     from emei.util import random_policy_test
 
-    env = BoundaryInvertedDoublePendulumHoldingEnv()
+    env = ReboundInvertedDoublePendulumSwingUpEnv()
     random_policy_test(env, is_render=True)
