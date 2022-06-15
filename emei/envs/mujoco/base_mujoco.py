@@ -1,22 +1,12 @@
-from collections import OrderedDict
 import os
-from typing import Optional
-from abc import abstractmethod
-
-from gym import error, spaces
+import mujoco
 import numpy as np
-from os import path
-import gym
-from emei import EmeiEnv
 
-try:
-    import mujoco_py
-except ImportError as e:
-    raise error.DependencyNotInstalled(
-        "{}. (HINT: you need to install mujoco_py, and also perform the setup instructions here: https://github.com/openai/mujoco-py/.)".format(
-            e
-        )
-    )
+from emei import EmeiEnv
+from gym import spaces
+from collections import OrderedDict
+from typing import Optional
+from scipy.spatial.transform import Rotation
 
 DEFAULT_SIZE = 500
 
@@ -41,6 +31,18 @@ def convert_observation_to_space(observation):
     return space
 
 
+def free_joint_forward_euler(pos, del_pos):
+    assert pos.shape == (7,) and del_pos.shape == (6,)
+    new_pos = np.empty(pos.shape)
+    new_pos[:3] = pos[:3] + del_pos[:3]
+
+    ang = Rotation.from_quat(pos[3:])
+    rot = Rotation.from_euler("zyx", del_pos[3:] * np.array([-1, 1, -1]), degrees=False)
+    rotated_ang = ang * rot
+    new_pos[3:] = rotated_ang.as_quat()
+    return new_pos
+
+
 class BaseMujocoEnv(EmeiEnv):
     """Superclass for all MuJoCo environments."""
 
@@ -48,17 +50,21 @@ class BaseMujocoEnv(EmeiEnv):
                  model_path,
                  freq_rate: int = 1,
                  time_step: float = 0.02,
-                 integrator="standard_euler"):
+                 integrator="standard_euler",
+                 camera_config: dict = None,
+                 reset_noise_scale: float = 0,
+                 ):
         EmeiEnv.__init__(self)
         if model_path.startswith("/"):
             fullpath = model_path
         else:
             fullpath = os.path.join(os.path.dirname(__file__), "assets", model_path)
-        if not path.exists(fullpath):
+        if not os.path.exists(fullpath):
             raise OSError(f"File {fullpath} does not exist")
         self.time_step = time_step
         self.freq_rate = freq_rate
-        self.model = mujoco_py.load_model_from_path(fullpath)
+
+        self.model = mujoco.MjModel.from_xml_path(fullpath)
         self._update_model()
 
         self.model.opt.timestep = time_step / freq_rate
@@ -72,9 +78,10 @@ class BaseMujocoEnv(EmeiEnv):
             self.model.opt.integrator = 1
         else:
             raise NotImplementedError
+        self._camera_config = camera_config if camera_config is not None else {}
+        self._reset_noise_scale = reset_noise_scale
 
-        self.sim = mujoco_py.MjSim(self.model)
-        self.data = self.sim.data
+        self.data = mujoco.MjData(self.model)
         self.viewer = None
         self._viewers = {}
 
@@ -83,8 +90,8 @@ class BaseMujocoEnv(EmeiEnv):
             "render_fps": int(np.round(1.0 / self.dt)),
         }
 
-        self.init_qpos = self.sim.data.qpos.ravel().copy()
-        self.init_qvel = self.sim.data.qvel.ravel().copy()
+        self.init_qpos = self.data.qpos.ravel().copy()
+        self.init_qvel = self.data.qvel.ravel().copy()
 
         self._set_action_space()
 
@@ -98,11 +105,11 @@ class BaseMujocoEnv(EmeiEnv):
         pass
 
     def freeze(self):
-        self.frozen_state = self.sim.get_state()
+        self.frozen_state = [self.data.qpos.copy(), self.data.qvel.copy()]
 
     def unfreeze(self):
-        self.sim.set_state(self.frozen_state)
-        self.sim.forward()
+        qpos, qvel = self.frozen_state
+        self.set_state(qpos, qvel)
 
     def _restore_pos_vel_from_obs(self, obs):
         if obs.shape == (self.model.nq + self.model.nv,):
@@ -114,12 +121,19 @@ class BaseMujocoEnv(EmeiEnv):
         self.set_state(*self._restore_pos_vel_from_obs(obs))
 
     def _get_obs(self):
-        return np.concatenate([self.sim.data.qpos, self.sim.data.qvel]).ravel()
+        return np.concatenate([self.data.qpos, self.data.qvel]).ravel()
+
+    def _get_info(self):
+        return {}
 
     def step(self, action):
+        pre_obs = self._get_obs()
         self.do_simulation(action, self.freq_rate)
         obs = self._get_obs()
-        return obs, self.get_reward_by_next_obs(obs), self.get_terminal_by_next_obs(obs), {}
+        return obs, \
+               self.get_reward_by_next_obs(obs, pre_obs, action), \
+               self.get_terminal_by_next_obs(obs, pre_obs, action), \
+               self._get_info()
 
     def _set_action_space(self):
         bounds = self.model.actuator_ctrlrange.copy().astype(np.float32)
@@ -139,7 +153,10 @@ class BaseMujocoEnv(EmeiEnv):
         Reset the robot degrees of freedom (qpos and qvel).
         Implement this in each subclass.
         """
-        raise NotImplementedError
+        qpos = self.init_qpos + self._reset_noise_scale * self.np_random.standard_normal(self.model.nq)
+        qvel = self.init_qvel + self._reset_noise_scale * self.np_random.standard_normal(self.model.nv)
+        self.set_state(qpos, qvel)
+        return self._get_obs()
 
     def viewer_setup(self):
         """
@@ -147,7 +164,11 @@ class BaseMujocoEnv(EmeiEnv):
         Optionally implement this method, if you need to tinker with camera position
         and so forth.
         """
-        pass
+        for key, value in self._camera_config.items():
+            if isinstance(value, np.ndarray):
+                getattr(self.viewer.cam, key)[:] = value
+            else:
+                setattr(self.viewer.cam, key, value)
 
     # -----------------------------
 
@@ -159,7 +180,8 @@ class BaseMujocoEnv(EmeiEnv):
             options: Optional[dict] = None,
     ):
         super().reset(seed=seed)
-        self.sim.reset()
+        mujoco.mj_resetData(self.model, self.data)
+
         ob = self.reset_model()
         if not return_info:
             return ob
@@ -168,12 +190,11 @@ class BaseMujocoEnv(EmeiEnv):
 
     def set_state(self, qpos, qvel):
         assert qpos.shape == (self.model.nq,) and qvel.shape == (self.model.nv,)
-        old_state = self.sim.get_state()
-        new_state = mujoco_py.MjSimState(
-            old_state.time, qpos, qvel, old_state.act, old_state.udd_state
-        )
-        self.sim.set_state(new_state)
-        self.sim.forward()
+        self.data.qpos[:] = np.copy(qpos)
+        self.data.qvel[:] = np.copy(qvel)
+        if self.model.na == 0:
+            self.data.act[:] = None
+        mujoco.mj_forward(self.model, self.data)
 
     @property
     def dt(self):
@@ -183,15 +204,41 @@ class BaseMujocoEnv(EmeiEnv):
         if np.array(ctrl).shape != self.action_space.shape:
             raise ValueError("Action dimension mismatch")
 
-        self.sim.data.ctrl[:] = ctrl
+        self.data.ctrl[:] = ctrl
         for _ in range(n_frames):
-            old_qpos, old_qvel = self.sim.data.qpos.copy(), self.sim.data.qvel.copy()
-            self.sim.step()
+            old_qpos, old_qvel = self.data.qpos.copy(), self.data.qvel.copy()
+            mujoco.mj_step(self.model, self.data)
             if self.standard_euler:
-                new_qpos = old_qpos + old_qvel * self.model.opt.timestep
-                new_qvel = self.sim.data.qvel
+                new_qpos = self.standard_euler_pos(old_qpos, old_qvel).copy()
+                new_qvel = self.data.qvel.copy()
                 self.set_state(new_qpos, new_qvel)
 
+        # As of MuJoCo 2.0, force-related quantities like cacc are not computed
+        # unless there's a force sensor in the model.
+        # See https://github.com/openai/gym/issues/1541
+        mujoco.mj_rnePostConstraint(self.model, self.data)
+
+    def standard_euler_pos(self, old_qpos, old_qvel):
+        cur_pos_idx = 0
+        cur_vel_idx = 0
+        new_qpos = np.empty(old_qpos.shape)
+        for jnt_id, jnt_type in enumerate(self.model.jnt_type):
+            if jnt_type == 0:
+                pos_len, vel_len = 7, 6
+                new_qpos[cur_pos_idx: cur_pos_idx + pos_len] = \
+                    free_joint_forward_euler(old_qpos[cur_pos_idx: cur_pos_idx + pos_len],
+                                             old_qvel[cur_vel_idx: cur_vel_idx + vel_len] * self.model.opt.timestep)
+            elif jnt_type == 1:
+                raise NotImplementedError
+            else:
+                pos_len, vel_len = 1, 1
+                new_qpos[cur_pos_idx: cur_pos_idx + pos_len] = \
+                    old_qpos[cur_pos_idx: cur_pos_idx + pos_len] + \
+                    old_qvel[cur_vel_idx: cur_vel_idx + vel_len] * self.model.opt.timestep
+
+            cur_pos_idx += pos_len
+            cur_vel_idx += vel_len
+        return new_qpos
 
     def render(
             self,
@@ -212,8 +259,11 @@ class BaseMujocoEnv(EmeiEnv):
             if no_camera_specified:
                 camera_name = "track"
 
-            if camera_id is None and camera_name in self.model._camera_name2id:
-                camera_id = self.model.camera_name2id(camera_name)
+            camera_id = mujoco.mj_name2id(
+                self.model,
+                mujoco.mjtObj.mjOBJ_CAMERA,
+                camera_name,
+            )
 
             self._get_viewer(mode).render(width, height, camera_id=camera_id)
 
@@ -234,24 +284,29 @@ class BaseMujocoEnv(EmeiEnv):
 
     def close(self):
         if self.viewer is not None:
-            # self.viewer.finish()
+            self.viewer.close()
             self.viewer = None
             self._viewers = {}
 
-    def _get_viewer(self, mode):
+    def _get_viewer(self, mode, width=DEFAULT_SIZE, height=DEFAULT_SIZE):
         self.viewer = self._viewers.get(mode)
         if self.viewer is None:
             if mode == "human":
-                self.viewer = mujoco_py.MjViewer(self.sim)
+                from gym.envs.mujoco.mujoco_rendering import Viewer
+                self.viewer = Viewer(self.model, self.data)
             elif mode == "rgb_array" or mode == "depth_array":
-                self.viewer = mujoco_py.MjRenderContextOffscreen(self.sim, -1)
+                from gym.envs.mujoco.mujoco_rendering import RenderContextOffscreen
+
+                self.viewer = RenderContextOffscreen(
+                    width, height, self.model, self.data
+                )
 
             self.viewer_setup()
             self._viewers[mode] = self.viewer
         return self.viewer
 
     def get_body_com(self, body_name):
-        return self.data.get_body_xpos(body_name)
+        return self.data.body(body_name).xpos
 
     def state_vector(self):
-        return np.concatenate([self.sim.data.qpos.flat, self.sim.data.qvel.flat])
+        return np.concatenate([self.data.qpos.flat, self.data.qvel.flat])

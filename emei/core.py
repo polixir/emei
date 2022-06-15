@@ -82,36 +82,44 @@ class EmeiEnv(ABC, Env):
             return np.array(next_obs_list), np.array(reward_list), np.array(done_list), np.array(info_list)
 
     @abstractmethod
-    def get_batch_reward_by_next_obs(self, next_obs):
+    def get_batch_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
         pass
 
     @abstractmethod
-    def get_batch_terminal_by_next_obs(self, next_obs):
+    def get_batch_terminal_by_next_obs(self, next_obs, pre_obs=None, action=None):
         pass
 
-    def get_reward_by_next_obs(self, next_obs):
+    def get_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
         """
         Return the reward of single or batch next-obs.
         :param next_obs: single or batch observations.
         :return: single or batch reward.
         """
         if len(next_obs.shape) == 1:  # single obs
-            batch_next_obs = next_obs.reshape(1, next_obs.shape[0])
-            return self.get_batch_reward_by_next_obs(batch_next_obs)[0, 0]
+            next_obs = next_obs.reshape(1, next_obs.shape[0])
+            if pre_obs is not None:
+                pre_obs = pre_obs.reshape(1, pre_obs.shape[0])
+            if action is not None:
+                action = action.reshape(1, action.shape[0])
+            return self.get_batch_reward_by_next_obs(next_obs, pre_obs, action)[0, 0]
         else:
-            return self.get_batch_reward_by_next_obs(next_obs)
+            return self.get_batch_reward_by_next_obs(next_obs, pre_obs, action)
 
-    def get_terminal_by_next_obs(self, next_obs):
+    def get_terminal_by_next_obs(self, next_obs, pre_obs=None, action=None):
         """
         Return the terminal of single or batch next-obs.
         :param next_obs: single or batch observations.
         :return: single or batch terminal.
         """
         if len(next_obs.shape) == 1:  # single obs
-            batch_next_obs = next_obs.reshape(1, next_obs.shape[0])
-            return self.get_batch_terminal_by_next_obs(batch_next_obs)[0, 0]
+            next_obs = next_obs.reshape(1, next_obs.shape[0])
+            if pre_obs is not None:
+                pre_obs = pre_obs.reshape(1, pre_obs.shape[0])
+            if action is not None:
+                action = action.reshape(1, action.shape[0])
+            return self.get_batch_terminal_by_next_obs(next_obs, pre_obs, action)[0, 0]
         else:
-            return self.get_batch_terminal_by_next_obs(next_obs)
+            return self.get_batch_terminal_by_next_obs(next_obs, pre_obs, action)
 
     @property
     def dataset_names(self):
