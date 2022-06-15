@@ -84,3 +84,33 @@ register(
     entry_point="emei.envs.mujoco:BoundaryInvertedDoublePendulumHoldingEnv",
     max_episode_steps=1000,
 )
+register(
+    id="HopperRunning-v0",
+    entry_point="emei.envs.mujoco:HopperEnv",
+    max_episode_steps=1000,
+)
+register(
+    id="Walker2dRunning-v0",
+    entry_point="emei.envs.mujoco:Walker2dEnv",
+    max_episode_steps=1000,
+)
+register(
+    id="AntRunning-v0",
+    entry_point="emei.envs.mujoco:AntEnv",
+    max_episode_steps=1000,
+)
+register(
+    id="HalfCheetahRunning-v0",
+    entry_point="emei.envs.mujoco:HalfCheetahEnv",
+    max_episode_steps=1000,
+)
+register(
+    id="HumanoidRunning-v0",
+    entry_point="emei.envs.mujoco:HumanoidEnv",
+    max_episode_steps=1000,
+)
+register(
+    id="SwimmerRunning-v0",
+    entry_point="emei.envs.mujoco:SwimmerEnv",
+    max_episode_steps=1000,
+)

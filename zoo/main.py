@@ -12,13 +12,13 @@ def train_and_collect(algo, cfg):
     random_samples, random_mean_rewards = collect_by_policy(cfg.env.name, cfg.env.random_samples)
     save_as_h5(random_samples, "random-{}.h5".format(cfg.env.name))
     # medium dataset
-    medium_model = algo(cfg.env.name, cfg.env.eval_freq, cfg.env.batch_size, cfg.env.medium_timesteps, "medium")
+    medium_model = algo(cfg.env.name, cfg.env.eval_freq, cfg.env.batch_size, cfg.env.medium_reward, "medium")
     medium_replay_samples = collect_replay_buffer(medium_model)
     medium_samples, medium_mean_rewards = collect_by_policy(cfg.env.name, cfg.env.medium_samples, medium_model)
     save_as_h5(medium_replay_samples, "medium-replay-{}.h5".format(cfg.env.name))
     save_as_h5(medium_samples, "medium-{}.h5".format(cfg.env.name))
     # expert dataset
-    expert_model = algo(cfg.env.name, cfg.env.eval_freq, cfg.env.batch_size, cfg.env.expert_timesteps, "expert")
+    expert_model = algo(cfg.env.name, cfg.env.eval_freq, cfg.env.batch_size, cfg.env.expert_reward, "expert")
     expert_replay_samples = collect_replay_buffer(expert_model)
     expert_samples, medium_mean_rewards = collect_by_policy(cfg.env.name, cfg.env.expert_samples, expert_model)
     save_as_h5(expert_replay_samples, "expert-replay-{}.h5".format(cfg.env.name))
