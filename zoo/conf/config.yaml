@@ -12,8 +12,8 @@ exp_name: default
 root_dir: "./zoo_exp"
 hydra:
   run:
-    dir: ${root_dir}/${algorithm}/${exp_name}/${env.name}/${now:%Y.%m.%d}/${now:%H%M%S}
+    dir: ${root_dir}/${algorithm}/${exp_name}/${env.name}/${env.params}/${now:%Y.%m.%d.%H%M%S}
   sweep:
-    dir: ${root_dir}/${algorithm}/${exp_name}/${env.name}/${now:%Y.%m.%d}/${now:%H%M%S}
+    dir: ${root_dir}/${algorithm}/${exp_name}/${env.name}/${env.params}/${now:%Y.%m.%d.%H%M%S}
   job:
     chdir: true

@@ -1,4 +1,5 @@
 name: "BoundaryInvertedDoublePendulumSwingUp-v0"
+params: "freq_rate=1&time_step=0.02"
 
 eval_freq: 5000
 batch_size: 256

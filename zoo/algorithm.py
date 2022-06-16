@@ -7,14 +7,26 @@ from stable_baselines3.common.callbacks import StopTrainingOnRewardThreshold, Ev
 from stable_baselines3 import SAC
 
 
-def sac_train(env_name, eval_freq=1000, batch_size=256, reward_threshold=100, level="expert"):
-    env = gym.make(env_name)
-    eval_env = gym.make(env_name)
+def num(s):
+    try:
+        return int(s)
+    except ValueError:
+        return float(s)
+
+
+def sac_train(env_name, params="", eval_freq=1000, batch_size=256, reward_threshold=100, level="expert"):
+    kwargs = dict([(item.split("=")[0], num(item.split("=")[1])) for item in params.split("&")])
+    env = gym.make(env_name, **kwargs)
+    eval_env = gym.make(env_name, **kwargs)
 
     # Stop training when the model reaches the reward threshold
     callback_on_best = StopTrainingOnRewardThreshold(reward_threshold=reward_threshold, verbose=1)
-    eval_callback = EvalCallback(eval_env, eval_freq=eval_freq,
-                                 callback_on_new_best=callback_on_best, verbose=1)
+    eval_callback = EvalCallback(eval_env,
+                                 eval_freq=eval_freq,
+                                 callback_on_new_best=callback_on_best,
+                                 best_model_save_path="./{}_logs".format(level),
+                                 log_path="./{}_logs".format(level),
+                                 verbose=1)
     model = SAC('MlpPolicy', env, tensorboard_log="./{}_log".format(level), batch_size=batch_size)
 
     model.learn(int(1e7), callback=eval_callback)
