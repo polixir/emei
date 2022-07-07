@@ -6,6 +6,13 @@ import h5py
 from tqdm import tqdm
 
 
+def num(s):
+    try:
+        return int(s)
+    except ValueError:
+        return float(s)
+
+
 def collect_replay_buffer(model):
     replay_buffer = model.replay_buffer
     unscale_action = model.policy.unscale_action
@@ -21,8 +28,9 @@ def collect_replay_buffer(model):
     return samples
 
 
-def collect_by_policy(env_name, sample_num, model=None):
-    env = gym.make(env_name)
+def collect_by_policy(env_name, params="", sample_num=int(1e6), model=None):
+    kwargs = dict([(item.split("=")[0], num(item.split("=")[1])) for item in params.split("&")])
+    env = gym.make(env_name, **kwargs)
     episode_rewards = []
 
     episode_reward = 0

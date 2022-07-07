@@ -1,10 +1,14 @@
 name: "BoundaryInvertedPendulumSwingUp-v0"
+params: "freq_rate=${env.freq_rate}&time_step=${env.time_step}"
+freq_rate: 1
+time_step: 0.02
 
-eval_freq: 1000
+
+eval_freq: 5000
 batch_size: 256
 
-medium_timesteps: 30000
-expert_timesteps: 50000
-random_samples: 100000
-medium_samples: 100000
-expert_samples: 100000
+medium_reward: 500
+expert_reward: 950
+random_samples: 200000
+medium_samples: 200000
+expert_samples: 200000

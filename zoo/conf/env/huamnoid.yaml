@@ -1,10 +1,10 @@
-name: "BoundaryInvertedDoublePendulumSwingUp-v0"
+name: "HumanoidRunning-v0"
 params: "freq_rate=1&time_step=0.02"
 
 eval_freq: 5000
 batch_size: 256
 
-medium_reward: 500
+medium_reward: 200
 expert_reward: 950
 random_samples: 1000000
 medium_samples: 1000000

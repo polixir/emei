@@ -96,7 +96,7 @@ class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
         self.model.body_quat[2] = [0, 0, 1, 0]
 
     def get_batch_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
-        rewards = (np.cos(next_obs[:, 1]) + 1) / 2
+        rewards = (1 - np.cos(next_obs[:, 1])) / 2
         return rewards.reshape([next_obs.shape[0], 1])
 
     def get_batch_terminal_by_next_obs(self, next_obs, pre_obs=None, action=None):
@@ -131,7 +131,7 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
         self.model.body_quat[2] = [0, 0, 1, 0]
 
     def get_batch_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
-        rewards = (np.cos(next_obs[:, 1]) + 1) / 2
+        rewards = (1 - np.cos(next_obs[:, 1])) / 2
         return rewards.reshape([next_obs.shape[0], 1])
 
     def get_batch_terminal_by_next_obs(self, next_obs, pre_obs=None, action=None):
@@ -151,6 +151,8 @@ if __name__ == '__main__':
     from emei.util import random_policy_test
 
     env = ReboundInvertedPendulumSwingUpEnv()
+    obs = env.reset()
+    print(obs)
     # while True:
     #     env.render()
-    random_policy_test(env, is_render=True)
+    # random_policy_test(env, is_render=True)
