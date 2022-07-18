@@ -30,7 +30,7 @@ class BaseInvertedPendulumEnv(BaseMujocoEnv, utils.EzPickle):
                          [0, 0, 0, 0, 0]])  # reward
 
 
-class ReboundInvertedPendulumHoldingEnv(BaseInvertedPendulumEnv):
+class ReboundInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
     def __init__(self,
                  freq_rate: int = 1,
                  time_step: float = 0.02,
@@ -51,7 +51,7 @@ class ReboundInvertedPendulumHoldingEnv(BaseInvertedPendulumEnv):
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
 
-class BoundaryInvertedPendulumHoldingEnv(BaseInvertedPendulumEnv):
+class BoundaryInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
     def __init__(self,
                  freq_rate: int = 1,
                  time_step: float = 0.02,

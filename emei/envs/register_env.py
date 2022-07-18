@@ -12,8 +12,8 @@ _load_env_plugins()
 # Classic
 # ----------------------------------------
 register(
-    id="CartPoleHolding-v0",
-    entry_point="emei.envs.classic_control:CartPoleHoldingEnv",
+    id="CartPoleBalancing-v0",
+    entry_point="emei.envs.classic_control:CartPoleBalancingEnv",
     max_episode_steps=500,
 )
 register(
@@ -22,8 +22,8 @@ register(
     max_episode_steps=1000,
 )
 register(
-    id="ContinuousCartPoleHolding-v0",
-    entry_point="emei.envs.classic_control:ContinuousCartPoleHoldingEnv",
+    id="ContinuousCartPoleBalancing-v0",
+    entry_point="emei.envs.classic_control:ContinuousCartPoleBalancingEnv",
     max_episode_steps=500,
 )
 register(
@@ -50,8 +50,8 @@ register(
     max_episode_steps=1000,
 )
 register(
-    id="ReboundInvertedPendulumHolding-v0",
-    entry_point="emei.envs.mujoco:ReboundInvertedPendulumHoldingEnv",
+    id="ReboundInvertedPendulumBalancing-v0",
+    entry_point="emei.envs.mujoco:ReboundInvertedPendulumBalancingEnv",
     max_episode_steps=1000,
 )
 register(
@@ -60,8 +60,8 @@ register(
     max_episode_steps=1000,
 )
 register(
-    id="BoundaryInvertedPendulumHolding-v0",
-    entry_point="emei.envs.mujoco:BoundaryInvertedPendulumHoldingEnv",
+    id="BoundaryInvertedPendulumBalancing-v0",
+    entry_point="emei.envs.mujoco:BoundaryInvertedPendulumBalancingEnv",
     max_episode_steps=1000,
 )
 register(
@@ -70,8 +70,8 @@ register(
     max_episode_steps=1000,
 )
 register(
-    id="ReboundInvertedDoublePendulumHolding-v0",
-    entry_point="emei.envs.mujoco:ReboundInvertedDoublePendulumHoldingEnv",
+    id="ReboundInvertedDoublePendulumBalancing-v0",
+    entry_point="emei.envs.mujoco:ReboundInvertedDoublePendulumBalancingEnv",
     max_episode_steps=1000,
 )
 register(
@@ -80,8 +80,8 @@ register(
     max_episode_steps=1000,
 )
 register(
-    id="BoundaryInvertedDoublePendulumHolding-v0",
-    entry_point="emei.envs.mujoco:BoundaryInvertedDoublePendulumHoldingEnv",
+    id="BoundaryInvertedDoublePendulumBalancing-v0",
+    entry_point="emei.envs.mujoco:BoundaryInvertedDoublePendulumBalancingEnv",
     max_episode_steps=1000,
 )
 register(
