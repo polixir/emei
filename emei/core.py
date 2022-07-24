@@ -101,7 +101,7 @@ class EmeiEnv(ABC, Env):
                 pre_obs = pre_obs.reshape(1, pre_obs.shape[0])
             if action is not None:
                 action = action.reshape(1, action.shape[0])
-            return self.get_batch_reward_by_next_obs(next_obs, pre_obs, action)[0, 0]
+            return float(self.get_batch_reward_by_next_obs(next_obs, pre_obs, action)[0, 0])
         else:
             return self.get_batch_reward_by_next_obs(next_obs, pre_obs, action)
 
@@ -117,7 +117,7 @@ class EmeiEnv(ABC, Env):
                 pre_obs = pre_obs.reshape(1, pre_obs.shape[0])
             if action is not None:
                 action = action.reshape(1, action.shape[0])
-            return self.get_batch_terminal_by_next_obs(next_obs, pre_obs, action)[0, 0]
+            return bool(self.get_batch_terminal_by_next_obs(next_obs, pre_obs, action)[0, 0])
         else:
             return self.get_batch_terminal_by_next_obs(next_obs, pre_obs, action)
 

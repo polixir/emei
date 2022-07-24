@@ -149,10 +149,7 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
 
 if __name__ == '__main__':
     from emei.util import random_policy_test
+    from gym.wrappers import TimeLimit
 
-    env = ReboundInvertedPendulumSwingUpEnv()
-    obs = env.reset()
-    print(obs)
-    # while True:
-    #     env.render()
-    # random_policy_test(env, is_render=True)
+    env = TimeLimit(ReboundInvertedPendulumSwingUpEnv(), max_episode_steps=1000)
+    random_policy_test(env, is_render=True)
