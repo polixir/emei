@@ -11,7 +11,7 @@ DEFAULT_CAMERA_CONFIG = {
 }
 
 
-class HopperEnv(BaseMujocoEnv, utils.EzPickle):
+class HopperRunningEnv(BaseMujocoEnv, utils.EzPickle):
     def __init__(
             self,
             freq_rate: int = 1,
@@ -66,5 +66,5 @@ class HopperEnv(BaseMujocoEnv, utils.EzPickle):
 if __name__ == '__main__':
     from emei.util import random_policy_test
 
-    env = HopperEnv()
+    env = HopperRunningEnv()
     random_policy_test(env, is_render=True)

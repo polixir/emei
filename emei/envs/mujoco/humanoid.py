@@ -17,7 +17,7 @@ def mass_center(model, data):
     return (np.sum(mass * xpos, axis=0) / np.sum(mass))[0:2].copy()
 
 
-class HumanoidEnv(BaseMujocoEnv, utils.EzPickle):
+class HumanoidRunningEnv(BaseMujocoEnv, utils.EzPickle):
     def __init__(
             self,
             freq_rate: int = 1,
@@ -66,5 +66,5 @@ class HumanoidEnv(BaseMujocoEnv, utils.EzPickle):
 if __name__ == '__main__':
     from emei.util import random_policy_test
 
-    env = HumanoidEnv()
+    env = HumanoidRunningEnv()
     random_policy_test(env, is_render=True)

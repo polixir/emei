@@ -11,7 +11,7 @@ DEFAULT_CAMERA_CONFIG = {
 }
 
 
-class Walker2dEnv(BaseMujocoEnv, utils.EzPickle):
+class Walker2dRunningEnv(BaseMujocoEnv, utils.EzPickle):
     def __init__(
             self,
             freq_rate: int = 1,
@@ -67,5 +67,5 @@ class Walker2dEnv(BaseMujocoEnv, utils.EzPickle):
 if __name__ == '__main__':
     from emei.util import random_policy_test
 
-    env = Walker2dEnv()
+    env = Walker2dRunningEnv()
     random_policy_test(env, is_render=True)

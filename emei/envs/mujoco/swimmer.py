@@ -8,7 +8,7 @@ from emei.envs.mujoco.base_mujoco import BaseMujocoEnv
 DEFAULT_CAMERA_CONFIG = {}
 
 
-class SwimmerEnv(BaseMujocoEnv, utils.EzPickle):
+class SwimmerRunningEnv(BaseMujocoEnv, utils.EzPickle):
     def __init__(
             self,
             freq_rate: int = 1,
@@ -50,5 +50,5 @@ class SwimmerEnv(BaseMujocoEnv, utils.EzPickle):
 if __name__ == '__main__':
     from emei.util import random_policy_test
 
-    env = SwimmerEnv()
+    env = SwimmerRunningEnv()
     random_policy_test(env, is_render=True)

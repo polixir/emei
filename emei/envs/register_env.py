@@ -86,31 +86,31 @@ register(
 )
 register(
     id="HopperRunning-v0",
-    entry_point="emei.envs.mujoco:HopperEnv",
+    entry_point="emei.envs.mujoco:HopperRunningEnv",
     max_episode_steps=1000,
 )
 register(
     id="Walker2dRunning-v0",
-    entry_point="emei.envs.mujoco:Walker2dEnv",
+    entry_point="emei.envs.mujoco:Walker2dRunningEnv",
     max_episode_steps=1000,
 )
 register(
     id="AntRunning-v0",
-    entry_point="emei.envs.mujoco:AntEnv",
+    entry_point="emei.envs.mujoco:AntRunningEnv",
     max_episode_steps=1000,
 )
 register(
     id="HalfCheetahRunning-v0",
-    entry_point="emei.envs.mujoco:HalfCheetahEnv",
+    entry_point="emei.envs.mujoco:HalfCheetahRunningEnv",
     max_episode_steps=1000,
 )
 register(
     id="HumanoidRunning-v0",
-    entry_point="emei.envs.mujoco:HumanoidEnv",
+    entry_point="emei.envs.mujoco:HumanoidRunningEnv",
     max_episode_steps=1000,
 )
 register(
     id="SwimmerRunning-v0",
-    entry_point="emei.envs.mujoco:SwimmerEnv",
+    entry_point="emei.envs.mujoco:SwimmerRunningEnv",
     max_episode_steps=1000,
 )

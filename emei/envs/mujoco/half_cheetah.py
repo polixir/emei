@@ -10,7 +10,7 @@ DEFAULT_CAMERA_CONFIG = {
 }
 
 
-class HalfCheetahEnv(BaseMujocoEnv, utils.EzPickle):
+class HalfCheetahRunningEnv(BaseMujocoEnv, utils.EzPickle):
     def __init__(
             self,
             freq_rate: int = 1,
@@ -52,5 +52,5 @@ class HalfCheetahEnv(BaseMujocoEnv, utils.EzPickle):
 if __name__ == '__main__':
     from emei.util import random_policy_test
 
-    env = HalfCheetahEnv()
+    env = HalfCheetahRunningEnv()
     random_policy_test(env, is_render=True)
