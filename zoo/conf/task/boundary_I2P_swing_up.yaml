@@ -8,7 +8,7 @@ start_steps: 5000
 eval_freq: 10
 
 # num steps
-num_steps: 31000000
+num_steps: 3000000
 
 medium_reward: 500
 expert_reward: 950

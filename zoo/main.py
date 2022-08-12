@@ -100,7 +100,7 @@ def main(args):
             avg_length = 0.
             episode_num = 10
             for _ in range(episode_num):
-                state = env.reset(seed=sac_args.seed)
+                state = env.reset()
                 episode_reward = 0
                 episode_length = 0
                 terminal = False
