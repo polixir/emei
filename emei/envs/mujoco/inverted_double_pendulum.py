@@ -46,10 +46,10 @@ class ReboundInvertedDoublePendulumBalancingEnv(BaseInvertedDoublePendulumEnv):
                                                time_step=time_step,
                                                integrator=integrator)
 
-    def get_batch_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_reward(self, next_obs, pre_obs=None, action=None):
         return np.ones([next_obs.shape[0], 1])
 
-    def get_batch_terminal_by_next_obs(self, next_obs, pred_obs=None, action=None):
+    def get_batch_terminal(self, next_obs, pred_obs=None, action=None):
         x, theta1, theta2, v, omega1, omega2 = next_obs.T
         y = np.cos(theta1) + np.cos(theta1 + theta2)
         notdone = np.isfinite(next_obs).all(axis=1) & (y > 1.5)
@@ -66,10 +66,10 @@ class BoundaryInvertedDoublePendulumBalancingEnv(BaseInvertedDoublePendulumEnv):
                                                time_step=time_step,
                                                integrator=integrator)
 
-    def get_batch_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_reward(self, next_obs, pre_obs=None, action=None):
         return np.ones([next_obs.shape[0], 1])
 
-    def get_batch_terminal_by_next_obs(self, next_obs, pred_obs=None, action=None):
+    def get_batch_terminal(self, next_obs, pred_obs=None, action=None):
         x_left, x_right = self.model.jnt_range[0]
         x, theta1, theta2, v, omega1, omega2 = next_obs.T
         y = np.cos(theta1) + np.cos(theta1 + theta2)
@@ -96,13 +96,13 @@ class ReboundInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
         self.model.jnt_range[1] = [-np.inf, np.inf]
         self.model.body_quat[2] = [0, 0, 1, 0]
 
-    def get_batch_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_reward(self, next_obs, pre_obs=None, action=None):
         x, theta1, theta2, v, omega1, omega2 = next_obs.T
         y = np.cos(theta1) + np.cos(theta1 + theta2)
         rewards = (2 - y) / 4
         return rewards.reshape([next_obs.shape[0], 1])
 
-    def get_batch_terminal_by_next_obs(self, next_obs, pred_obs=None, action=None):
+    def get_batch_terminal(self, next_obs, pred_obs=None, action=None):
         notdone = np.isfinite(next_obs).all(axis=1)
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
@@ -130,13 +130,13 @@ class BoundaryInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
         self.model.jnt_range[1] = [-np.inf, np.inf]
         self.model.body_quat[2] = [0, 0, 1, 0]
 
-    def get_batch_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_reward(self, next_obs, pre_obs=None, action=None):
         x, theta1, theta2, v, omega1, omega2 = next_obs.T
         y = np.cos(theta1) + np.cos(theta1 + theta2)
         rewards = (2 - y) / 4
         return rewards.reshape([next_obs.shape[0], 1])
 
-    def get_batch_terminal_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_terminal(self, next_obs, pre_obs=None, action=None):
         x_left, x_right = self.model.jnt_range[0]
         x, theta1, theta2, v, omega1, omega2 = next_obs.T
         notdone = np.isfinite(next_obs).all(axis=1) \

@@ -103,7 +103,7 @@ class BaseChargedBallEnv(BaseControlEnv):
             self.state["on_circle"] = True
             self.state["circle_state"] = self.free_to_circle(self.state["free_state"])
 
-    def get_batch_terminal_by_next_obs(self, next_obs):
+    def get_batch_terminal(self, next_obs):
         return False
 
     def draw(self):
@@ -151,7 +151,7 @@ class ChargedBallCenteringEnv(BaseChargedBallEnv):
     def _extract_action(self, action):
         return self.charge if action == 1 else -self.charge
 
-    def get_batch_reward_by_next_obs(self, obs):
+    def get_batch_reward(self, obs):
         x, y, v_x, v_y = obs
         return 1 - math.sqrt(x ** 2 + y ** 2) / self.radius
 
@@ -165,7 +165,7 @@ class ContinuousChargedBallCenteringEnv(BaseChargedBallEnv):
     def _extract_action(self, action):
         return self.charge * action[0]
 
-    def get_batch_reward_by_next_obs(self, obs):
+    def get_batch_reward(self, obs):
         x, y, v_x, v_y = obs
         return 1 - math.sqrt(x ** 2 + y ** 2) / self.radius
 

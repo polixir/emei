@@ -43,10 +43,10 @@ class ReboundInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
                                          integrator=integrator,
                                          reset_noise_scale=reset_noise_scale)
 
-    def get_batch_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_reward(self, next_obs, pre_obs=None, action=None):
         return np.ones([next_obs.shape[0], 1])
 
-    def get_batch_terminal_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_terminal(self, next_obs, pre_obs=None, action=None):
         notdone = (np.abs(next_obs[:, 1]) <= 0.2) & np.isfinite(next_obs).all(axis=1)
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
@@ -64,10 +64,10 @@ class BoundaryInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
                                          integrator=integrator,
                                          reset_noise_scale=reset_noise_scale)
 
-    def get_batch_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_reward(self, next_obs, pre_obs=None, action=None):
         return np.ones([next_obs.shape[0], 1])
 
-    def get_batch_terminal_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_terminal(self, next_obs, pre_obs=None, action=None):
         x_left, x_right = self.model.jnt_range[0]
         notdone = (np.abs(next_obs[:, 1]) <= 0.2) \
                   & np.logical_and(x_left < next_obs[:, 0], next_obs[:, 0] < x_right) \
@@ -95,11 +95,11 @@ class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
         self.model.jnt_range[1] = [-np.inf, np.inf]
         self.model.body_quat[2] = [0, 0, 1, 0]
 
-    def get_batch_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_reward(self, next_obs, pre_obs=None, action=None):
         rewards = (1 - np.cos(next_obs[:, 1])) / 2
         return rewards.reshape([next_obs.shape[0], 1])
 
-    def get_batch_terminal_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_terminal(self, next_obs, pre_obs=None, action=None):
         notdone = np.isfinite(next_obs).all(axis=1)
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
@@ -130,11 +130,11 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
         self.model.jnt_range[1] = [-np.inf, np.inf]
         self.model.body_quat[2] = [0, 0, 1, 0]
 
-    def get_batch_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_reward(self, next_obs, pre_obs=None, action=None):
         rewards = (1 - np.cos(next_obs[:, 1])) / 2
         return rewards.reshape([next_obs.shape[0], 1])
 
-    def get_batch_terminal_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_terminal(self, next_obs, pre_obs=None, action=None):
         x_left, x_right = self.model.jnt_range[0]
         notdone = np.logical_and(x_left < next_obs[:, 0], next_obs[:, 0] < x_right) \
                   & np.isfinite(next_obs).all(axis=1)

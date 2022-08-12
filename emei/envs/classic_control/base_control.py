@@ -60,7 +60,7 @@ class BaseControlEnv(EmeiEnv):
             self.update_state(updated)
 
         obs = self._get_obs(self.state)
-        return obs, self.get_reward_by_next_obs(obs), self.get_terminal_by_next_obs(obs), {}
+        return obs, self.get_reward(obs), self.get_terminal(obs), {}
 
     def reset(
             self,

@@ -1,7 +1,8 @@
 ROOT_PATH = r"http://114.212.20.185/emei/offline_data"
-ENV_NAMES = ["ContinuousCartPoleBalancing", "ContinuousCartPoleSwingUp", "ContinuousChargedBallCentering",
-             "BoundaryInvertedPendulumBalancing", "ReboundInvertedPendulumBalancing",
-             "BoundaryInvertedPendulumSwingUp", "ReboundInvertedPendulumSwingUp",
+ENV_NAMES = ["BoundaryInvertedPendulumBalancing",
+             "BoundaryInvertedPendulumSwingUp",
+             "BoundaryInvertedDoublePendulumBalancing",
+             "BoundaryInvertedDoublePendulumSwingUp",
              "HopperRunning", "Walker2dRunning", "HalfCheetahRunning", "AntRunning",
              "HumanoidRunning", "SwimmerRunning"]
 DATASETS = ["random", "medium", "expert", "medium-replay", "expert-replay"]

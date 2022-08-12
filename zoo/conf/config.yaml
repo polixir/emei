@@ -1,8 +1,8 @@
 defaults:
-  - env: boundary_inverted_pendulum_swing_up
+  - task: boundary_IP_balancing
+  - algorithm: sac
   - _self_
 
-algorithm: "SAC"
 seed: 0
 device: "cuda:0"
 log_frequency_agent: 1000
@@ -12,8 +12,8 @@ exp_name: default
 root_dir: "./zoo_exp"
 hydra:
   run:
-    dir: ${root_dir}/${algorithm}/${exp_name}/${env.name}/${env.params}/${now:%Y.%m.%d.%H%M%S}
+    dir: ${root_dir}/${algorithm.name}/${exp_name}/${task.name}/${task.params}/${now:%Y.%m.%d.%H%M%S}
   sweep:
-    dir: ${root_dir}/${algorithm}/${exp_name}/${env.name}/${env.params}/${now:%Y.%m.%d.%H%M%S}
+    dir: ${root_dir}/${algorithm.name}/${exp_name}/${task.name}/${task.params}/${now:%Y.%m.%d.%H%M%S}
   job:
     chdir: true

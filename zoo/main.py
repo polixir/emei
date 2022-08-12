@@ -1,43 +1,214 @@
-import os
-import hydra
-from omegaconf import DictConfig, OmegaConf
+import argparse
+import datetime
 import gym
 import emei
-from zoo.algorithm import sac_train
-from zoo.collect_data import collect_by_policy, collect_replay_buffer, save_as_h5
-
-
-def train_and_collect(algo, cfg):
-    # random dataset
-    random_samples, random_mean_rewards = collect_by_policy(cfg.env.name,
-                                                            cfg.env.params,
-                                                            cfg.env.random_samples)
-    save_as_h5(random_samples, "random.h5")
-    # medium dataset
-    medium_model = algo(cfg.env.name,
-                        cfg.env.params,
-                        cfg.env.eval_freq, cfg.env.batch_size, cfg.env.medium_reward, "medium")
-    medium_replay_samples = collect_replay_buffer(medium_model)
-    medium_samples, medium_mean_rewards = collect_by_policy(cfg.env.name,
-                                                            cfg.env.params,
-                                                            cfg.env.medium_samples, medium_model)
-    save_as_h5(medium_replay_samples, "medium-replay.h5")
-    save_as_h5(medium_samples, "medium.h5")
-    # expert dataset
-    expert_model = algo(cfg.env.name,
-                        cfg.env.params,
-                        cfg.env.eval_freq, cfg.env.batch_size, cfg.env.expert_reward, "expert")
-    expert_replay_samples = collect_replay_buffer(expert_model)
-    expert_samples, medium_mean_rewards = collect_by_policy(cfg.env.name,
-                                                            cfg.env.params,
-                                                            cfg.env.expert_samples, expert_model)
-    save_as_h5(expert_replay_samples, "expert-replay.h5")
-    save_as_h5(expert_samples, "expert.h5")
+import numpy as np
+import itertools
+import torch
+import hydra
+from tqdm import tqdm
+from collections import defaultdict
+from zoo.soft_actor_critic.sac import SAC
+from zoo.soft_actor_critic.replay_memory import ReplayMemory
+from torch.utils.tensorboard import SummaryWriter
+from zoo.util import to_num, save_as_h5
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
-def main(cfg: DictConfig) -> None:
-    train_and_collect(sac_train, cfg)
+def main(args):
+    sac_args = args.algorithm
+    reach_medium = False
+    reach_expert = False
+
+    # Environment
+    kwargs = dict([(item.split("=")[0], to_num(item.split("=")[1])) for item in args.task.params.split("&")])
+    env = gym.make(args.task.name, new_step_api=True, **kwargs)
+    env.reset(seed=sac_args.seed)
+    env.action_space.seed(sac_args.seed)
+
+    torch.manual_seed(sac_args.seed)
+    np.random.seed(sac_args.seed)
+
+    # Agent
+    agent = SAC(env.observation_space.shape[0], env.action_space, sac_args)
+
+    # rollout random dataset
+    avg_reward, avg_length = rollout_and_save(env, agent,
+                                              total_sample_num=args.task.random_sample_num,
+                                              seed=sac_args.seed,
+                                              save_path="random.h5")
+    print("Rollout Random samples: Avg. Reward: {}, Avg. Length: {}".format(round(avg_reward, 2),
+                                                                            round(avg_length, 2)))
+
+    # Tesnorboard
+    writer = SummaryWriter(log_dir="./tb/")
+
+    # Memory
+    memory = ReplayMemory(sac_args.replay_size, sac_args.seed)
+
+    # Training Loop
+    total_numsteps = 0
+    updates = 0
+
+    for i_episode in itertools.count(1):
+        episode_reward = 0
+        episode_length = 0
+        terminal = False
+        truncated = False
+        state = env.reset()
+
+        while not (terminal or truncated):
+            if sac_args.start_steps > total_numsteps:
+                action = env.action_space.sample()  # Sample random action
+            else:
+                action = agent.select_action(state)  # Sample action from policy
+
+            if len(memory) > sac_args.batch_size:
+                # Number of updates per step in environment
+                for i in range(sac_args.updates_per_step):
+                    # Update parameters of all the networks
+                    critic_1_loss, critic_2_loss, policy_loss, ent_loss, alpha = agent.update_parameters(memory,
+                                                                                                         sac_args.batch_size,
+                                                                                                         updates)
+
+                    writer.add_scalar('loss/critic_1', critic_1_loss, updates)
+                    writer.add_scalar('loss/critic_2', critic_2_loss, updates)
+                    writer.add_scalar('loss/policy', policy_loss, updates)
+                    writer.add_scalar('loss/entropy_loss', ent_loss, updates)
+                    writer.add_scalar('entropy_temprature/alpha', alpha, updates)
+                    updates += 1
+
+            next_state, reward, terminal, truncated, _ = env.step(action)  # Step
+            episode_length += 1
+            total_numsteps += 1
+            episode_reward += reward
+
+            memory.push(state, action, reward, next_state, terminal, truncated)  # Append transition to memory
+
+            state = next_state
+
+        if total_numsteps > sac_args.num_steps:
+            break
+
+        writer.add_scalar('train/reward', episode_reward, total_numsteps)
+        writer.add_scalar('train/length', episode_length, total_numsteps)
+        print("Episode: {}, total numsteps: {}, length: {}, reward: {}".format(i_episode, total_numsteps,
+                                                                               episode_length,
+                                                                               round(episode_reward, 2)))
+        if i_episode % sac_args.eval_freq == 0 and sac_args.eval is True:
+            avg_reward = 0.
+            avg_length = 0.
+            episode_num = 10
+            for _ in range(episode_num):
+                state = env.reset(seed=sac_args.seed)
+                episode_reward = 0
+                episode_length = 0
+                terminal = False
+                truncated = False
+                while not (terminal or truncated):
+                    action = agent.select_action(state, evaluate=True)
+
+                    next_state, reward, terminal, truncated, _ = env.step(action)
+                    episode_reward += reward
+                    episode_length += 1
+
+                    state = next_state
+                avg_reward += episode_reward
+                avg_length += episode_length
+            avg_reward /= episode_num
+            avg_length /= episode_num
+
+            writer.add_scalar('test/reward', avg_reward, total_numsteps)
+            writer.add_scalar('test/length', avg_length, total_numsteps)
+
+            print("----------------------------------------")
+            print("Test Episodes: {}, Avg. Reward: {}, Avg. Length: {}".format(episode_num,
+                                                                               round(avg_reward, 2),
+                                                                               round(avg_length, 2)))
+            print("----------------------------------------")
+
+            if avg_reward > args.task.medium_reward and not reach_medium:
+                memory.save_buffer(save_path="medium-replay.h5")
+                agent.save_checkpoint(save_path="medium-agent.pth")
+                avg_reward, avg_length = rollout_and_save(env, agent,
+                                                          total_sample_num=args.task.medium_sample_num,
+                                                          seed=sac_args.seed,
+                                                          save_path="medium.h5")
+                print("Rollout Medium samples: Avg. Reward: {}, Avg. Length: {}".format(round(avg_reward, 2),
+                                                                                        round(avg_length, 2)))
+                reach_medium = True
+            if avg_reward > args.task.expert_reward and not reach_expert:
+                memory.save_buffer(save_path="expert-replay.h5")
+                agent.save_checkpoint(save_path="expert-agent.pth")
+                avg_reward, avg_length = rollout_and_save(env, agent,
+                                                          total_sample_num=args.task.expert_sample_num,
+                                                          seed=sac_args.seed,
+                                                          save_path="expert.h5")
+                print("Rollout Expert samples: Avg. Reward: {}, Avg. Length: {}".format(round(avg_reward, 2),
+                                                                                        round(avg_length, 2)))
+                reach_expert = True
+
+        if reach_expert:
+            break
+    env.close()
+
+
+def rollout_and_save(env,
+                     agent,
+                     total_sample_num=int(1e6),
+                     seed=0,
+                     save_path="random.h5"):
+    samples = defaultdict(list)
+    current_sample_num = 0
+    current_episode_num = 0
+    avg_reward = 0.
+    avg_length = 0.
+    env.reset(seed=seed)
+
+    with tqdm(total=total_sample_num) as pbar:
+        pbar.set_description('Sampling')
+        for i_episode in itertools.count(1):
+            episode_reward = 0
+            episode_length = 0
+            terminal = False
+            truncated = False
+            state = env.reset()
+            while not (terminal or truncated):
+                action = agent.select_action(state, evaluate=True)
+                next_state, reward, terminal, truncated, _ = env.step(action)
+
+                samples['observations'].append(state)
+                samples['next_observations'].append(next_state)
+                samples['actions'].append(action)
+                samples['rewards'].append(reward)
+                samples['terminals'].append(float(terminal))
+                samples['timeouts'].append(float(truncated))
+
+                episode_reward += reward
+                episode_length += 1
+                current_sample_num += 1
+                state = next_state
+                pbar.update(1)
+
+            avg_reward += episode_reward
+            avg_length += episode_length
+            current_episode_num += 1
+
+            if current_sample_num >= total_sample_num:
+                break
+    avg_reward /= current_episode_num
+    avg_length /= current_episode_num
+    np_samples = {}
+    for key in samples.keys():
+        np_samples[key] = np.array(samples[key])
+
+    with open("sampling_info.txt", "a") as f:
+        f.write(str(dict(avg_reward=avg_reward,
+                         avg_length=avg_length,
+                         total_episode_num=current_episode_num)))
+    save_as_h5(np_samples, save_path)
+
+    return avg_reward, avg_length
 
 
 if __name__ == "__main__":

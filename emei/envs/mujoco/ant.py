@@ -42,13 +42,13 @@ class AntRunningEnv(BaseMujocoEnv, utils.EzPickle):
                                reset_noise_scale=reset_noise_scale,
                                )
 
-    def get_batch_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_reward(self, next_obs, pre_obs=None, action=None):
         forward_reward = self._forward_reward_weight * (next_obs[:, 0] - pre_obs[:, 0]) / self.time_step
         control_cost = self._ctrl_cost_weight * np.sum(np.square(action))
         rewards = self._healthy_reward + forward_reward - control_cost
         return rewards.reshape([next_obs.shape[0], 1])
 
-    def get_batch_terminal_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_terminal(self, next_obs, pre_obs=None, action=None):
         min_z, max_z = self._healthy_z_range
         z = next_obs[:, 2]
         notdone = np.logical_and(z > min_z, z < max_z) & np.isfinite(next_obs).all(axis=1)

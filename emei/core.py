@@ -12,7 +12,7 @@ from collections import defaultdict
 DATASET_PATH = os.path.expanduser('~/.emei/offline_data')
 
 
-class EmeiEnv(ABC, Env):
+class EmeiEnv(Env):
     def __init__(self):
         """
         Abstract class for all Emei environments to better support model-based RL and offline RL.
@@ -82,14 +82,14 @@ class EmeiEnv(ABC, Env):
             return np.array(next_obs_list), np.array(reward_list), np.array(done_list), np.array(info_list)
 
     @abstractmethod
-    def get_batch_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_reward(self, next_obs, pre_obs=None, action=None):
         pass
 
     @abstractmethod
-    def get_batch_terminal_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_batch_terminal(self, next_obs, pre_obs=None, action=None):
         pass
 
-    def get_reward_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_reward(self, next_obs, pre_obs=None, action=None):
         """
         Return the reward of single or batch next-obs.
         :param next_obs: single or batch observations.
@@ -101,11 +101,11 @@ class EmeiEnv(ABC, Env):
                 pre_obs = pre_obs.reshape(1, pre_obs.shape[0])
             if action is not None:
                 action = action.reshape(1, action.shape[0])
-            return float(self.get_batch_reward_by_next_obs(next_obs, pre_obs, action)[0, 0])
+            return float(self.get_batch_reward(next_obs, pre_obs, action)[0, 0])
         else:
-            return self.get_batch_reward_by_next_obs(next_obs, pre_obs, action)
+            return self.get_batch_reward(next_obs, pre_obs, action)
 
-    def get_terminal_by_next_obs(self, next_obs, pre_obs=None, action=None):
+    def get_terminal(self, next_obs, pre_obs=None, action=None):
         """
         Return the terminal of single or batch next-obs.
         :param next_obs: single or batch observations.
@@ -117,9 +117,9 @@ class EmeiEnv(ABC, Env):
                 pre_obs = pre_obs.reshape(1, pre_obs.shape[0])
             if action is not None:
                 action = action.reshape(1, action.shape[0])
-            return bool(self.get_batch_terminal_by_next_obs(next_obs, pre_obs, action)[0, 0])
+            return bool(self.get_batch_terminal(next_obs, pre_obs, action)[0, 0])
         else:
-            return self.get_batch_terminal_by_next_obs(next_obs, pre_obs, action)
+            return self.get_batch_terminal(next_obs, pre_obs, action)
 
     @property
     def dataset_names(self):

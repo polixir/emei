@@ -35,12 +35,16 @@ def load_dataset(data_path):
 def show_obs_rew(data_dict):
     diff_obs = data_dict["next_observations"] - data_dict["observations"]
     rew = data_dict["rewards"]
-    for i in range(diff_obs.shape[-1]):
-        plt.hist(diff_obs[:, i], bins=20, log=True)
-        plt.title(f"target_dist_dim{i}")
-        plt.show()
 
-    plt.hist(rew, bins=20, log=True)
+    for i in range(data_dict["observations"].shape[-1]):
+        plt.hist(data_dict["observations"][:, i], bins=50, log=True)
+        plt.title(f"obs_dim{i}")
+        plt.show()
+    for i in range(diff_obs.shape[-1]):
+        plt.hist(diff_obs[:, i], bins=50, log=True)
+        plt.title(f"diff_obs_dim{i}")
+        plt.show()
+    plt.hist(rew, bins=50, log=True)
     plt.title(f"reward")
     plt.show()
 

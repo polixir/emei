@@ -96,7 +96,7 @@ class BaseMujocoEnv(EmeiEnv):
         self._set_action_space()
 
         action = self.action_space.sample()
-        observation, _reward, done, _info = self.step(action)
+        observation, reward, done, truncated, info = self.step(action)
         assert not done
 
         self._set_observation_space(observation)
@@ -130,10 +130,11 @@ class BaseMujocoEnv(EmeiEnv):
         pre_obs = self._get_obs()
         self.do_simulation(action, self.freq_rate)
         obs = self._get_obs()
-        return obs, \
-               self.get_reward_by_next_obs(obs, pre_obs, action), \
-               self.get_terminal_by_next_obs(obs, pre_obs, action), \
-               self._get_info()
+        reward = self.get_reward(obs, pre_obs, action)
+        terminal = self.get_terminal(obs, pre_obs, action)
+        truncated = False
+        info = self._get_info()
+        return obs, reward, terminal, truncated, info
 
     def _set_action_space(self):
         bounds = self.model.actuator_ctrlrange.copy().astype(np.float32)
