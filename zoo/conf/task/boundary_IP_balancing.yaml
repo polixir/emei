@@ -12,6 +12,6 @@ num_steps: 1000000
 
 medium_reward: 800
 expert_reward: 950
-random_sample_num: 100000
+random_sample_num: 1
 medium_sample_num: 100000
 expert_sample_num: 100000

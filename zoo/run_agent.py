@@ -17,16 +17,20 @@ from torch.utils.tensorboard import SummaryWriter
 from zoo.util import to_num, save_as_h5, load_hydra_cfg
 
 
-def run(exp_dir, agent_type="medium"):
+def run(exp_dir,
+        agent_type="medium",
+        device="cuda:0"):
     exp_dir = pathlib.Path(exp_dir)
-    args = load_hydra_cfg(exp_dir)
+    args = load_hydra_cfg(exp_dir, reset_device=device)
     sac_args = args.algorithm
 
     kwargs = dict([(item.split("=")[0], to_num(item.split("=")[1])) for item in args.task.params.split("&")])
     env = gym.make(args.task.name, new_step_api=True, **kwargs)
 
     agent = SAC(env.observation_space.shape[0], env.action_space, sac_args)
-    agent.load_checkpoint(exp_dir / "{}-agent.pth".format(agent_type), evaluate=True)
+    agent.load_checkpoint(exp_dir / "{}-agent.pth".format(agent_type),
+                          evaluate=True,
+                          reset_device=device)
 
     state = env.reset(seed=10086)
     env.render()
@@ -48,11 +52,11 @@ def run(exp_dir, agent_type="medium"):
             state = next_state
 
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("exp_dir", type=str)
     parser.add_argument("--agent_type", type=str, default="medium")
+    parser.add_argument("--device", type=str, default="cuda:0")
     args = parser.parse_args()
 
     run(args.exp_dir, args.agent_type)

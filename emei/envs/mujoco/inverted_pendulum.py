@@ -1,11 +1,11 @@
 import numpy as np
 from gym import utils
-from emei.envs.mujoco.base_mujoco import BaseMujocoEnv
+from emei.envs.mujoco.mujoco_env import MujocoEnv
 
 DEFAULT_CAMERA_CONFIG = {}
 
 
-class BaseInvertedPendulumEnv(BaseMujocoEnv, utils.EzPickle):
+class BaseInvertedPendulumEnv(MujocoEnv, utils.EzPickle):
     def __init__(self,
                  freq_rate: int = 1,
                  time_step: float = 0.02,
@@ -13,13 +13,13 @@ class BaseInvertedPendulumEnv(BaseMujocoEnv, utils.EzPickle):
                  # noise
                  reset_noise_scale=0.2):
         utils.EzPickle.__init__(self)
-        BaseMujocoEnv.__init__(self,
-                               model_path="inverted_pendulum.xml",
-                               freq_rate=freq_rate,
-                               time_step=time_step,
-                               integrator=integrator,
-                               camera_config=DEFAULT_CAMERA_CONFIG,
-                               reset_noise_scale=reset_noise_scale, )
+        MujocoEnv.__init__(self,
+                           model_path="inverted_pendulum.xml",
+                           freq_rate=freq_rate,
+                           time_step=time_step,
+                           integrator=integrator,
+                           camera_config=DEFAULT_CAMERA_CONFIG,
+                           reset_noise_scale=reset_noise_scale, )
 
     @property
     def causal_graph(self):

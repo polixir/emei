@@ -49,6 +49,7 @@ def main(args):
     # Training Loop
     total_numsteps = 0
     updates = 0
+    best_eval_rewards = -np.inf
 
     for i_episode in itertools.count(1):
         episode_reward = 0
@@ -126,6 +127,9 @@ def main(args):
                                                                                round(avg_reward, 2),
                                                                                round(avg_length, 2)))
             print("----------------------------------------")
+            if avg_reward > best_eval_rewards:
+                best_eval_rewards = avg_reward
+                agent.save_checkpoint(save_path="best-agent.pth")
 
             if avg_reward > args.task.medium_reward and not reach_medium:
                 memory.save_buffer(save_path="medium-replay.h5")

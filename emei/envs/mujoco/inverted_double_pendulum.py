@@ -1,6 +1,6 @@
 import numpy as np
 from gym import utils
-from emei.envs.mujoco.base_mujoco import BaseMujocoEnv
+from emei.envs.mujoco.mujoco_env import MujocoEnv
 
 DEFAULT_CAMERA_CONFIG = {
     "trackbodyid": 0,
@@ -9,20 +9,20 @@ DEFAULT_CAMERA_CONFIG = {
 }
 
 
-class BaseInvertedDoublePendulumEnv(BaseMujocoEnv, utils.EzPickle):
+class BaseInvertedDoublePendulumEnv(MujocoEnv, utils.EzPickle):
     def __init__(self,
                  freq_rate: int = 1,
                  time_step: float = 0.02,
                  integrator="standard_euler",
                  # noise
                  reset_noise_scale=0.2):
-        BaseMujocoEnv.__init__(self,
-                               model_path="inverted_double_pendulum.xml",
-                               freq_rate=freq_rate,
-                               time_step=time_step,
-                               integrator=integrator,
-                               camera_config=DEFAULT_CAMERA_CONFIG,
-                               reset_noise_scale=reset_noise_scale, )
+        MujocoEnv.__init__(self,
+                           model_path="inverted_double_pendulum.xml",
+                           freq_rate=freq_rate,
+                           time_step=time_step,
+                           integrator=integrator,
+                           camera_config=DEFAULT_CAMERA_CONFIG,
+                           reset_noise_scale=reset_noise_scale, )
         utils.EzPickle.__init__(self)
 
     @property

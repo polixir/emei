@@ -2,13 +2,17 @@ import os
 import mujoco
 import numpy as np
 
+from functools import partial
 from emei import EmeiEnv
-from gym import spaces
 from collections import OrderedDict
 from typing import Optional
 from scipy.spatial.transform import Rotation
 
-DEFAULT_SIZE = 500
+from gym import spaces
+from gym.utils.renderer import Renderer
+from gym.envs.mujoco.mujoco_env import BaseMujocoEnv
+
+DEFAULT_SIZE = 480
 
 
 def convert_observation_to_space(observation):
@@ -43,29 +47,41 @@ def free_joint_forward_euler(pos, del_pos):
     return new_pos
 
 
-class BaseMujocoEnv(EmeiEnv):
+class MujocoEnv(EmeiEnv):
     """Superclass for all MuJoCo environments."""
+    metadata = {
+        "render_modes": [
+            "human",
+            "rgb_array",
+            "depth_array",
+            "single_rgb_array",
+            "single_depth_array",
+        ],
+        "render_fps": 125,
+    }
 
     def __init__(self,
                  model_path,
                  freq_rate: int = 1,
                  time_step: float = 0.02,
                  integrator="standard_euler",
-                 camera_config: dict = None,
+                 camera_config: Optional[dict] = None,
                  reset_noise_scale: float = 0,
                  ):
         EmeiEnv.__init__(self)
+        # load model from path
         if model_path.startswith("/"):
             fullpath = model_path
         else:
             fullpath = os.path.join(os.path.dirname(__file__), "assets", model_path)
         if not os.path.exists(fullpath):
             raise OSError(f"File {fullpath} does not exist")
-        self.time_step = time_step
-        self.freq_rate = freq_rate
 
         self.model = mujoco.MjModel.from_xml_path(fullpath)
         self._update_model()
+
+        self.freq_rate = freq_rate
+        self.time_step = time_step
 
         self.model.opt.timestep = time_step / freq_rate
         self.standard_euler = False
@@ -78,17 +94,13 @@ class BaseMujocoEnv(EmeiEnv):
             self.model.opt.integrator = 1
         else:
             raise NotImplementedError
+
         self._camera_config = camera_config if camera_config is not None else {}
         self._reset_noise_scale = reset_noise_scale
 
         self.data = mujoco.MjData(self.model)
         self.viewer = None
         self._viewers = {}
-
-        self.metadata = {
-            "render_modes": ["human", "rgb_array", "depth_array"],
-            "render_fps": int(np.round(1.0 / self.dt)),
-        }
 
         self.init_qpos = self.data.qpos.ravel().copy()
         self.init_qvel = self.data.qvel.ravel().copy()
@@ -160,11 +172,6 @@ class BaseMujocoEnv(EmeiEnv):
         return self._get_obs()
 
     def viewer_setup(self):
-        """
-        This method is called when the viewer is initialized.
-        Optionally implement this method, if you need to tinker with camera position
-        and so forth.
-        """
         for key, value in self._camera_config.items():
             if isinstance(value, np.ndarray):
                 getattr(self.viewer.cam, key)[:] = value
@@ -243,13 +250,20 @@ class BaseMujocoEnv(EmeiEnv):
 
     def render(
             self,
-            mode="human",
-            width=DEFAULT_SIZE,
-            height=DEFAULT_SIZE,
-            camera_id=None,
-            camera_name=None,
+            mode: str = "human",
+            width: int = DEFAULT_SIZE,
+            height: int = DEFAULT_SIZE,
+            camera_id: Optional[int] = None,
+            camera_name: Optional[str] = None,
     ):
-        if mode == "rgb_array" or mode == "depth_array":
+        assert mode in self.metadata["render_modes"]
+
+        if mode in {
+            "rgb_array",
+            "single_rgb_array",
+            "depth_array",
+            "single_depth_array",
+        }:
             if camera_id is not None and camera_name is not None:
                 raise ValueError(
                     "Both `camera_id` and `camera_name` cannot be"
@@ -260,22 +274,21 @@ class BaseMujocoEnv(EmeiEnv):
             if no_camera_specified:
                 camera_name = "track"
 
-            camera_id = mujoco.mj_name2id(
-                self.model,
-                mujoco.mjtObj.mjOBJ_CAMERA,
-                camera_name,
-            )
+            if camera_id is None:
+                camera_id = mujoco.mj_name2id(
+                    self.model,
+                    mujoco.mjtObj.mjOBJ_CAMERA,
+                    camera_name,
+                )
 
-            self._get_viewer(mode).render(width, height, camera_id=camera_id)
+                self._get_viewer(mode).render(width, height, camera_id=camera_id)
 
-        if mode == "rgb_array":
-            # window size used for old mujoco-py:
+        if mode in {"rgb_array", "single_rgb_array"}:
             data = self._get_viewer(mode).read_pixels(width, height, depth=False)
             # original image is upside-down, so flip it
             return data[::-1, :, :]
-        elif mode == "depth_array":
+        elif mode in {"depth_array", "single_depth_array"}:
             self._get_viewer(mode).render(width, height)
-            # window size used for old mujoco-py:
             # Extract depth part of the read_pixels() tuple
             data = self._get_viewer(mode).read_pixels(width, height, depth=True)[1]
             # original image is upside-down, so flip it
@@ -293,10 +306,16 @@ class BaseMujocoEnv(EmeiEnv):
         self.viewer = self._viewers.get(mode)
         if self.viewer is None:
             if mode == "human":
-                from gym.envs.mujoco.mujoco_rendering import Viewer
+                from gym.envs.mujoco import Viewer
+
                 self.viewer = Viewer(self.model, self.data)
-            elif mode == "rgb_array" or mode == "depth_array":
-                from gym.envs.mujoco.mujoco_rendering import RenderContextOffscreen
+            elif mode in {
+                "rgb_array",
+                "depth_array",
+                "single_rgb_array",
+                "single_depth_array",
+            }:
+                from gym.envs.mujoco import RenderContextOffscreen
 
                 self.viewer = RenderContextOffscreen(
                     width, height, self.model, self.data

@@ -3,14 +3,14 @@ __credits__ = ["Rushiv Arora"]
 import numpy as np
 
 from gym import utils
-from emei.envs.mujoco.base_mujoco import BaseMujocoEnv
+from emei.envs.mujoco.mujoco_env import MujocoEnv
 
 DEFAULT_CAMERA_CONFIG = {
     "distance": 4.0,
 }
 
 
-class HalfCheetahRunningEnv(BaseMujocoEnv, utils.EzPickle):
+class HalfCheetahRunningEnv(MujocoEnv, utils.EzPickle):
     def __init__(
             self,
             freq_rate: int = 1,
@@ -29,14 +29,14 @@ class HalfCheetahRunningEnv(BaseMujocoEnv, utils.EzPickle):
 
         self._reset_noise_scale = reset_noise_scale
 
-        BaseMujocoEnv.__init__(self,
-                               model_path="half_cheetah.xml",
-                               freq_rate=freq_rate,
-                               time_step=time_step,
-                               integrator=integrator,
-                               camera_config=DEFAULT_CAMERA_CONFIG,
-                               reset_noise_scale=reset_noise_scale,
-                               )
+        MujocoEnv.__init__(self,
+                           model_path="half_cheetah.xml",
+                           freq_rate=freq_rate,
+                           time_step=time_step,
+                           integrator=integrator,
+                           camera_config=DEFAULT_CAMERA_CONFIG,
+                           reset_noise_scale=reset_noise_scale,
+                           )
 
     def get_batch_reward(self, next_obs, pre_obs=None, action=None):
         forward_reward = self._forward_reward_weight * (next_obs[:, 0] - pre_obs[:, 0]) / self.time_step
