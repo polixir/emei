@@ -22,6 +22,7 @@ class HopperRunningEnv(MujocoEnv, utils.EzPickle):
         ],
         "render_fps": 125,
     }
+
     def __init__(
             self,
             freq_rate: int = 1,
@@ -71,6 +72,9 @@ class HopperRunningEnv(MujocoEnv, utils.EzPickle):
                   & np.logical_and(angle > min_angle, angle < max_angle) \
                   & np.isfinite(next_obs).all(axis=1)
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
+
+    def get_batch_agent_obs(self, obs):
+        return obs[:, 1:]
 
 
 if __name__ == '__main__':

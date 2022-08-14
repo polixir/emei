@@ -82,12 +82,23 @@ class EmeiEnv(Env):
             return np.array(next_obs_list), np.array(reward_list), np.array(done_list), np.array(info_list)
 
     @abstractmethod
+    def get_batch_agent_obs(self, obs):
+        pass
+
+    @abstractmethod
     def get_batch_reward(self, next_obs, pre_obs=None, action=None):
         pass
 
     @abstractmethod
     def get_batch_terminal(self, next_obs, pre_obs=None, action=None):
         pass
+
+    def get_agent_obs(self, obs):
+        if len(obs.shape) == 1:  # single obs
+            obs = obs.reshape(1, obs.shape[0])
+            return self.get_batch_agent_obs(obs)[0]
+        else:
+            return self.get_batch_agent_obs(obs)
 
     def get_reward(self, next_obs, pre_obs=None, action=None):
         """

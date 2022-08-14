@@ -116,6 +116,9 @@ class MujocoEnv(EmeiEnv):
     def _update_model(self):
         pass
 
+    def get_batch_agent_obs(self, obs):
+        return obs
+
     def freeze(self):
         self.frozen_state = [self.data.qpos.copy(), self.data.qvel.copy()]
 

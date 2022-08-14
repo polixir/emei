@@ -7,7 +7,15 @@ from zoo.soft_actor_critic.model import GaussianPolicy, QNetwork, DeterministicP
 
 
 class SAC(object):
-    def __init__(self, num_inputs, action_space, args):
+    def __init__(self,
+                 observation_space,
+                 action_space,
+                 args,
+                 get_agent_obs_func):
+        self.get_agent_obs_func = get_agent_obs_func
+        agent_obs_shape = get_agent_obs_func(observation_space.sample()).shape
+        obs_dim = agent_obs_shape[0]
+        action_dim = action_space.shape[0]
 
         self.gamma = args.gamma
         self.tau = args.tau
@@ -19,10 +27,10 @@ class SAC(object):
 
         self.device = torch.device(args.device)
 
-        self.critic = QNetwork(num_inputs, action_space.shape[0], args.hidden_size).to(device=self.device)
+        self.critic = QNetwork(obs_dim, action_dim, args.hidden_size).to(device=self.device)
         self.critic_optim = Adam(self.critic.parameters(), lr=args.lr)
 
-        self.critic_target = QNetwork(num_inputs, action_space.shape[0], args.hidden_size).to(self.device)
+        self.critic_target = QNetwork(obs_dim, action_dim, args.hidden_size).to(self.device)
         hard_update(self.critic_target, self.critic)
 
         if self.policy_type == "Gaussian":
@@ -32,19 +40,20 @@ class SAC(object):
                 self.log_alpha = torch.zeros(1, requires_grad=True, device=self.device)
                 self.alpha_optim = Adam([self.log_alpha], lr=args.lr)
 
-            self.policy = GaussianPolicy(num_inputs, action_space.shape[0], args.hidden_size, action_space).to(
+            self.policy = GaussianPolicy(obs_dim, action_dim, args.hidden_size, action_space).to(
                 self.device)
             self.policy_optim = Adam(self.policy.parameters(), lr=args.lr)
 
         else:
             self.alpha = 0
             self.automatic_entropy_tuning = False
-            self.policy = DeterministicPolicy(num_inputs, action_space.shape[0], args.hidden_size, action_space).to(
+            self.policy = DeterministicPolicy(obs_dim, action_dim, args.hidden_size, action_space).to(
                 self.device)
             self.policy_optim = Adam(self.policy.parameters(), lr=args.lr)
 
     def select_action(self, state, evaluate=False):
         state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
+        state = self.get_agent_obs_func(state)
         if evaluate is False:
             action, _, _ = self.policy.sample(state)
         else:
@@ -60,6 +69,9 @@ class SAC(object):
          terminal_batch,
          truncated_batch) = memory.sample(batch_size=batch_size)
         mask_batch = ~terminal_batch
+
+        state_batch = self.get_agent_obs_func(state_batch)
+        next_state_batch = self.get_agent_obs_func(next_state_batch)
 
         state_batch = torch.FloatTensor(state_batch).to(self.device)
         next_state_batch = torch.FloatTensor(next_state_batch).to(self.device)

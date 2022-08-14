@@ -1,24 +1,15 @@
 import argparse
-import datetime
 import pathlib
-
 import gym
+
 import emei
-import numpy as np
-import itertools
-import torch
-import hydra
-import json
-from tqdm import tqdm
-from collections import defaultdict
 from zoo.soft_actor_critic.sac import SAC
-from zoo.soft_actor_critic.replay_memory import ReplayMemory
-from torch.utils.tensorboard import SummaryWriter
+from typing import cast
 from zoo.util import to_num, save_as_h5, load_hydra_cfg
 
 
 def run(exp_dir,
-        agent_type="medium",
+        agent_type="best",
         device="cuda:0"):
     exp_dir = pathlib.Path(exp_dir)
     args = load_hydra_cfg(exp_dir, reset_device=device)
@@ -26,8 +17,9 @@ def run(exp_dir,
 
     kwargs = dict([(item.split("=")[0], to_num(item.split("=")[1])) for item in args.task.params.split("&")])
     env = gym.make(args.task.name, new_step_api=True, **kwargs)
+    env = cast(emei.EmeiEnv, env)
 
-    agent = SAC(env.observation_space.shape[0], env.action_space, sac_args)
+    agent = SAC(env.observation_space, env.action_space, sac_args, env.get_agent_obs)
     agent.load_checkpoint(exp_dir / "{}-agent.pth".format(agent_type),
                           evaluate=True,
                           reset_device=device)
@@ -55,7 +47,7 @@ def run(exp_dir,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("exp_dir", type=str)
-    parser.add_argument("--agent_type", type=str, default="medium")
+    parser.add_argument("--agent_type", type=str, default="best")
     parser.add_argument("--device", type=str, default="cuda:0")
     args = parser.parse_args()
 

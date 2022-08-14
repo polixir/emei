@@ -8,8 +8,8 @@ eval_freq: 10
 # num steps
 num_steps: 10000000
 
-medium_reward: 5000
-expert_reward: 120000
-random_sample_num: 100
-medium_sample_num: 100
-expert_sample_num: 100
+medium_reward: 10000
+expert_reward: 15000
+random_sample_num: 1000000
+medium_sample_num: 1000000
+expert_sample_num: 1000000

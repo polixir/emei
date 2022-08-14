@@ -6,6 +6,7 @@ import numpy as np
 import itertools
 import torch
 import hydra
+from typing import cast
 from tqdm import tqdm
 from collections import defaultdict
 from zoo.soft_actor_critic.sac import SAC
@@ -23,6 +24,7 @@ def main(args):
     # Environment
     kwargs = dict([(item.split("=")[0], to_num(item.split("=")[1])) for item in args.task.params.split("&")])
     env = gym.make(args.task.name, new_step_api=True, **kwargs)
+    env = cast(emei.EmeiEnv, env)
     env.reset(seed=sac_args.seed)
     env.action_space.seed(sac_args.seed)
 
@@ -30,7 +32,7 @@ def main(args):
     np.random.seed(sac_args.seed)
 
     # Agent
-    agent = SAC(env.observation_space.shape[0], env.action_space, sac_args)
+    agent = SAC(env.observation_space, env.action_space, sac_args, env.get_agent_obs)
 
     # rollout random dataset
     avg_reward, avg_length = rollout_and_save(env, agent,

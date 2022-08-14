@@ -17,12 +17,12 @@ def random_policy_test(env, is_render=False, sleep=None, default_action=None):
         episode_rewards += reward
         render()
 
-        # if terminal or truncated:
-        #     obs = env.reset()
-        #     render()
-        #     print("episode length: {}\tepisode rewards: {}".format(episode_len, episode_rewards))
-        #     episode_len = 0
-        #     episode_rewards = 0
+        if terminal or truncated:
+            obs = env.reset()
+            render()
+            print("episode length: {}\tepisode rewards: {}".format(episode_len, episode_rewards))
+            episode_len = 0
+            episode_rewards = 0
 
         if sleep is not None:
             time.sleep(sleep)

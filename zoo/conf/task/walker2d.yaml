@@ -9,7 +9,7 @@ eval_freq: 10
 num_steps: 10000000
 
 medium_reward: 5000
-expert_reward: 120000
-random_sample_num: 100
-medium_sample_num: 100
-expert_sample_num: 100
+expert_reward: 8000
+random_sample_num: 1000000
+medium_sample_num: 1000000
+expert_sample_num: 1000000

@@ -15,7 +15,7 @@ class BaseInvertedDoublePendulumEnv(MujocoEnv, utils.EzPickle):
                  time_step: float = 0.02,
                  integrator="standard_euler",
                  # noise
-                 reset_noise_scale=0.2):
+                 reset_noise_scale=0.1):
         MujocoEnv.__init__(self,
                            model_path="inverted_double_pendulum.xml",
                            freq_rate=freq_rate,
@@ -40,11 +40,14 @@ class ReboundInvertedDoublePendulumBalancingEnv(BaseInvertedDoublePendulumEnv):
     def __init__(self,
                  freq_rate: int = 1,
                  time_step: float = 0.02,
-                 integrator="standard_euler"):
+                 integrator="standard_euler",
+                 # noise
+                 reset_noise_scale=0.1):
         BaseInvertedDoublePendulumEnv.__init__(self,
                                                freq_rate=freq_rate,
                                                time_step=time_step,
-                                               integrator=integrator)
+                                               integrator=integrator,
+                                               reset_noise_scale=reset_noise_scale)
 
     def get_batch_reward(self, next_obs, pre_obs=None, action=None):
         return np.ones([next_obs.shape[0], 1])
@@ -60,11 +63,14 @@ class BoundaryInvertedDoublePendulumBalancingEnv(BaseInvertedDoublePendulumEnv):
     def __init__(self,
                  freq_rate: int = 1,
                  time_step: float = 0.02,
-                 integrator="standard_euler"):
+                 integrator="standard_euler",
+                 # noise
+                 reset_noise_scale=0.1):
         BaseInvertedDoublePendulumEnv.__init__(self,
                                                freq_rate=freq_rate,
                                                time_step=time_step,
-                                               integrator=integrator)
+                                               integrator=integrator,
+                                               reset_noise_scale=reset_noise_scale)
 
     def get_batch_reward(self, next_obs, pre_obs=None, action=None):
         return np.ones([next_obs.shape[0], 1])
@@ -83,11 +89,14 @@ class ReboundInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
     def __init__(self,
                  freq_rate: int = 1,
                  time_step: float = 0.02,
-                 integrator="standard_euler"):
+                 integrator="standard_euler",
+                 # noise
+                 reset_noise_scale=0.2):
         BaseInvertedDoublePendulumEnv.__init__(self,
                                                freq_rate=freq_rate,
                                                time_step=time_step,
-                                               integrator=integrator)
+                                               integrator=integrator,
+                                               reset_noise_scale=reset_noise_scale)
 
     def _update_model(self):
         self.model.stat.extent = 10
@@ -117,11 +126,14 @@ class BoundaryInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
     def __init__(self,
                  freq_rate: int = 1,
                  time_step: float = 0.02,
-                 integrator="standard_euler"):
+                 integrator="standard_euler",
+                 # noise
+                 reset_noise_scale=0.2):
         BaseInvertedDoublePendulumEnv.__init__(self,
                                                freq_rate=freq_rate,
                                                time_step=time_step,
-                                               integrator=integrator)
+                                               integrator=integrator,
+                                               reset_noise_scale=reset_noise_scale)
 
     def _update_model(self):
         self.model.stat.extent = 10

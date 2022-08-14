@@ -62,6 +62,8 @@ class HumanoidRunningEnv(MujocoEnv, utils.EzPickle):
         notdone = np.logical_and(z > min_z, z < max_z) & np.isfinite(next_obs).all(axis=1)
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
+    def get_batch_agent_obs(self, obs):
+        return obs[:, 2:]
 
 if __name__ == '__main__':
     from emei.util import random_policy_test

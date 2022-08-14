@@ -11,7 +11,7 @@ class BaseInvertedPendulumEnv(MujocoEnv, utils.EzPickle):
                  time_step: float = 0.02,
                  integrator="standard_euler",
                  # noise
-                 reset_noise_scale=0.2):
+                 reset_noise_scale=0.1):
         utils.EzPickle.__init__(self)
         MujocoEnv.__init__(self,
                            model_path="inverted_pendulum.xml",
@@ -36,7 +36,7 @@ class ReboundInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
                  time_step: float = 0.02,
                  integrator="standard_euler",
                  # noise
-                 reset_noise_scale=0.05):
+                 reset_noise_scale=0.1):
         BaseInvertedPendulumEnv.__init__(self,
                                          freq_rate=freq_rate,
                                          time_step=time_step,
@@ -57,7 +57,7 @@ class BoundaryInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
                  time_step: float = 0.02,
                  integrator="standard_euler",
                  # noise
-                 reset_noise_scale=0.05):
+                 reset_noise_scale=0.1):
         BaseInvertedPendulumEnv.__init__(self,
                                          freq_rate=freq_rate,
                                          time_step=time_step,
