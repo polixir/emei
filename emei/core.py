@@ -57,9 +57,9 @@ class EmeiEnv(Env):
     def single_query(self, obs, action):
         self.freeze()
         self._set_state_by_obs(obs)
-        next_obs, reward, done, info = self.step(action)
+        next_obs, reward, terminal, truncated, info = self.step(action)
         self.unfreeze()
-        return next_obs, reward, done, info
+        return next_obs, reward, terminal, truncated, info
 
     def query(self, obs, action):
         """
@@ -72,14 +72,19 @@ class EmeiEnv(Env):
             assert len(action.shape) == 1
             return self.single_query(obs, action)
         else:
-            next_obs_list, reward_list, done_list, info_list = [], [], [], []
+            next_obs_list, reward_list, terminal_list, truncated_list,info_list = [], [], [], [],[]
             for i in range(obs.shape[0]):
-                next_obs, reward, done, info = self.single_query(obs[i], action[i])
+                next_obs, reward, terminal, truncated, info = self.single_query(obs[i], action[i])
                 next_obs_list.append(next_obs)
                 reward_list.append(reward)
-                done_list.append(done)
+                terminal_list.append(terminal)
+                truncated_list.append(truncated)
                 info_list.append(info)
-            return np.array(next_obs_list), np.array(reward_list), np.array(done_list), np.array(info_list)
+            return np.array(next_obs_list), \
+                   np.array(reward_list), \
+                   np.array(terminal_list), \
+                   np.array(truncated_list), \
+                   np.array(info_list)
 
     @abstractmethod
     def get_batch_agent_obs(self, obs):

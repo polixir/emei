@@ -1,6 +1,6 @@
 name: "BoundaryInvertedDoublePendulumBalancing-v0"
 params: "freq_rate=${task.freq_rate}&time_step=${task.time_step}"
-freq_rate: 1
+freq_rate: 4
 time_step: 0.02
 
 # sac
