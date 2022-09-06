@@ -10,7 +10,7 @@ from zoo.util import to_num, save_as_h5, load_hydra_cfg
 
 
 def run(exp_dir,
-        agent_type="best",
+        type="best",
         device="cuda:0"):
     exp_dir = pathlib.Path(exp_dir)
     args = load_hydra_cfg(exp_dir, reset_device=device)
@@ -21,7 +21,7 @@ def run(exp_dir,
     env = cast(emei.EmeiEnv, env)
 
     agent = SAC(env.observation_space, env.action_space, sac_args)
-    agent.load_checkpoint(exp_dir / "{}-agent.pth".format(agent_type),
+    agent.load_checkpoint(exp_dir / "{}-agent.pth".format(type),
                           evaluate=True,
                           reset_device=device)
 
@@ -30,13 +30,8 @@ def run(exp_dir,
     episode_reward = 0
     episode_length = 0
     while True:
-        action = agent.select_action(obs, evaluate=True)
+        action = agent.select_action(obs, evaluate=False)
         next_obs, reward, terminal, truncated, _ = env.step(action)
-        # pos, vel = env.env.restore_pos_vel_from_obs(next_obs)
-        # re_state = np.concatenate([pos, vel])
-        # print(re_state == env.env.get_state())
-        # if not (re_state == env.env.get_state()).all():
-        #     print(re_state, env.env.get_state())
         env.render()
 
         episode_reward += reward
@@ -53,8 +48,8 @@ def run(exp_dir,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("exp_dir", type=str)
-    parser.add_argument("--agent_type", type=str, default="best")
+    parser.add_argument("--type", type=str, default="best")
     parser.add_argument("--device", type=str, default="cuda:0")
     args = parser.parse_args()
 
-    run(args.exp_dir, args.agent_type)
+    run(args.exp_dir, args.type)

@@ -10,7 +10,7 @@ eval_freq: 10
 # num steps
 num_steps: 1000000
 
-medium_reward: 650
+medium_reward: 400
 expert_reward: 950
 uniform_sample_num: 200000
 random_sample_num: 200000

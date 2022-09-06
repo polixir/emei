@@ -37,13 +37,14 @@ def main(args):
     agent = SAC(env.observation_space, env.action_space, sac_args)
 
     # rollout random dataset
+    agent.save_checkpoint(save_path="random-agent.pth")
     avg_reward, avg_length = rollout_and_save(env, agent,
                                               total_sample_num=args.task.random_sample_num,
                                               seed=sac_args.seed,
                                               save_name="random")
     print("Rollout Random samples: Avg. Reward: {}, Avg. Length: {}".format(round(avg_reward, 2),
                                                                             round(avg_length, 2)))
-    # rollout random dataset
+    # rollout uniform dataset
     avg_reward, avg_length = rollout_and_save(env, None,
                                               total_sample_num=args.task.uniform_sample_num,
                                               seed=sac_args.seed,
@@ -190,7 +191,7 @@ def rollout_and_save(env,
             state = env.reset()
             while not (terminal or truncated):
                 if agent is not None:
-                    action = agent.select_action(state, evaluate=True)
+                    action = agent.select_action(state, evaluate=False)
                 else:
                     action = env.action_space.sample()
                 next_state, reward, terminal, truncated, _ = env.step(action)
