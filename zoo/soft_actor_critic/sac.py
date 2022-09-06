@@ -10,11 +10,8 @@ class SAC(object):
     def __init__(self,
                  observation_space,
                  action_space,
-                 args,
-                 get_agent_obs_func):
-        self.get_agent_obs_func = get_agent_obs_func
-        agent_obs_shape = get_agent_obs_func(observation_space.sample()).shape
-        obs_dim = agent_obs_shape[0]
+                 args):
+        obs_dim = observation_space.shape[0]
         action_dim = action_space.shape[0]
 
         self.gamma = args.gamma
@@ -53,7 +50,6 @@ class SAC(object):
 
     def select_action(self, state, evaluate=False):
         state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
-        state = self.get_agent_obs_func(state)
         if evaluate is False:
             action, _, _ = self.policy.sample(state)
         else:
@@ -69,9 +65,6 @@ class SAC(object):
          terminal_batch,
          truncated_batch) = memory.sample(batch_size=batch_size)
         mask_batch = ~terminal_batch
-
-        state_batch = self.get_agent_obs_func(state_batch)
-        next_state_batch = self.get_agent_obs_func(next_state_batch)
 
         state_batch = torch.FloatTensor(state_batch).to(self.device)
         next_state_batch = torch.FloatTensor(next_state_batch).to(self.device)

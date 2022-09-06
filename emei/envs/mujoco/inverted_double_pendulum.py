@@ -25,14 +25,31 @@ class BaseInvertedDoublePendulumEnv(MujocoEnv, utils.EzPickle):
                            reset_noise_scale=reset_noise_scale, )
         utils.EzPickle.__init__(self)
 
+    def _get_obs(self):
+        theta1, theta2 = self.data.qpos[1:]
+        return np.concatenate(
+            [
+                self.data.qpos[:1],  # cart x pos
+                [np.sin(theta1), np.cos(theta1), np.sin(theta2), np.cos(theta2)],
+                self.data.qvel
+            ]
+        ).ravel()
+
+    def _restore_pos_vel_from_obs(self, obs):
+        theta1 = np.angle(1j * obs[1] + obs[2])
+        theta2 = np.angle(1j * obs[3] + obs[4])
+        return np.array([obs[0], theta1, theta2]), obs[-3:]
+
     @property
     def causal_graph(self):
-        return np.array([[0, 0, 0, 1, 0, 0, 0],  # dot x
-                         [0, 0, 0, 0, 1, 0, 0],  # dot theta1
-                         [0, 0, 0, 0, 0, 1, 0],  # dot theta2
+        return np.array([[0, 0, 0, 0, 0, 1, 0, 0, 0],  # dot x
+                         [0, 0, 0, 0, 1, 0, 0],  # dot sin theta1
+                         [0, 0, 0, 0, 0, 1, 0],  # dot cos theta1
+                         [0, 0, 0, 0, 1, 0, 0],  # dot sin theta2
+                         [0, 0, 0, 0, 0, 1, 0],  # dot cos theta2
                          [0, 1, 1, 0, 1, 1, 1],  # dot v
-                         [0, 1, 1, 0, 1, 1, 1],  # dot v
-                         [0, 1, 1, 0, 1, 1, 1],  # dot omega
+                         [0, 1, 1, 0, 1, 1, 1],  # dot omega1
+                         [0, 1, 1, 0, 1, 1, 1],  # dot omega2
                          [0, 0, 0, 0, 0, 0, 0]])  # reward
 
 

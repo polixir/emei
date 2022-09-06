@@ -1,5 +1,5 @@
 defaults:
-  - task: boundary_IP_balancing
+  - task: boundary_IP_swing_up
   - algorithm: sac
   - _self_
 

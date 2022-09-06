@@ -1,5 +1,7 @@
 import argparse
 import datetime
+import pathlib
+import json
 import gym
 import emei
 import numpy as np
@@ -32,15 +34,22 @@ def main(args):
     np.random.seed(sac_args.seed)
 
     # Agent
-    agent = SAC(env.observation_space, env.action_space, sac_args, env.get_agent_obs)
+    agent = SAC(env.observation_space, env.action_space, sac_args)
 
     # rollout random dataset
     avg_reward, avg_length = rollout_and_save(env, agent,
                                               total_sample_num=args.task.random_sample_num,
                                               seed=sac_args.seed,
-                                              save_path="random.h5")
+                                              save_name="random")
     print("Rollout Random samples: Avg. Reward: {}, Avg. Length: {}".format(round(avg_reward, 2),
                                                                             round(avg_length, 2)))
+    # rollout random dataset
+    avg_reward, avg_length = rollout_and_save(env, None,
+                                              total_sample_num=args.task.uniform_sample_num,
+                                              seed=sac_args.seed,
+                                              save_name="uniform")
+    print("Rollout Uniform Distribution samples: Avg. Reward: {}, Avg. Length: {}".format(round(avg_reward, 2),
+                                                                                          round(avg_length, 2)))
 
     # Tesnorboard
     writer = SummaryWriter(log_dir="./tb/")
@@ -139,7 +148,7 @@ def main(args):
                 avg_reward, avg_length = rollout_and_save(env, agent,
                                                           total_sample_num=args.task.medium_sample_num,
                                                           seed=sac_args.seed,
-                                                          save_path="medium.h5")
+                                                          save_name="medium")
                 print("Rollout Medium samples: Avg. Reward: {}, Avg. Length: {}".format(round(avg_reward, 2),
                                                                                         round(avg_length, 2)))
                 reach_medium = True
@@ -149,7 +158,7 @@ def main(args):
                 avg_reward, avg_length = rollout_and_save(env, agent,
                                                           total_sample_num=args.task.expert_sample_num,
                                                           seed=sac_args.seed,
-                                                          save_path="expert.h5")
+                                                          save_name="expert")
                 print("Rollout Expert samples: Avg. Reward: {}, Avg. Length: {}".format(round(avg_reward, 2),
                                                                                         round(avg_length, 2)))
                 reach_expert = True
@@ -163,7 +172,7 @@ def rollout_and_save(env,
                      agent,
                      total_sample_num=int(1e6),
                      seed=0,
-                     save_path="random.h5"):
+                     save_name="random"):
     samples = defaultdict(list)
     current_sample_num = 0
     current_episode_num = 0
@@ -180,7 +189,10 @@ def rollout_and_save(env,
             truncated = False
             state = env.reset()
             while not (terminal or truncated):
-                action = agent.select_action(state, evaluate=True)
+                if agent is not None:
+                    action = agent.select_action(state, evaluate=True)
+                else:
+                    action = env.action_space.sample()
                 next_state, reward, terminal, truncated, _ = env.step(action)
 
                 samples['observations'].append(state)
@@ -208,11 +220,17 @@ def rollout_and_save(env,
     for key in samples.keys():
         np_samples[key] = np.array(samples[key])
 
-    with open("sampling_info.txt", "a") as f:
-        f.write(str(dict(avg_reward=avg_reward,
-                         avg_length=avg_length,
-                         total_episode_num=current_episode_num)))
-    save_as_h5(np_samples, save_path)
+    if pathlib.Path("sampling_info.txt").exists():
+        with open("sampling_info.txt", "r") as f:
+            sampling_info = json.load(f)
+    else:
+        sampling_info = {}
+    sampling_info[save_name] = dict(avg_reward=avg_reward,
+                                    avg_length=avg_length,
+                                    total_episode_num=current_episode_num)
+    with open("sampling_info.txt", "w") as f:
+        json.dump(sampling_info, f, indent=4)
+    save_as_h5(np_samples, "{}.h5".format(save_name))
 
     return avg_reward, avg_length
 

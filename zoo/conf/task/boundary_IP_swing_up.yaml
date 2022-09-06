@@ -1,6 +1,6 @@
 name: "BoundaryInvertedPendulumSwingUp-v0"
 params: "freq_rate=${task.freq_rate}&time_step=${task.time_step}"
-freq_rate: 4
+freq_rate: 1
 time_step: 0.02
 
 # sac
@@ -10,8 +10,9 @@ eval_freq: 10
 # num steps
 num_steps: 1000000
 
-medium_reward: 500
+medium_reward: 650
 expert_reward: 950
+uniform_sample_num: 200000
 random_sample_num: 200000
 medium_sample_num: 200000
 expert_sample_num: 200000

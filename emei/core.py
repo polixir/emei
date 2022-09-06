@@ -1,7 +1,7 @@
 import os
 import h5py
 import urllib.request
-
+import inspect
 from abc import ABC, abstractmethod
 from gym import Env
 import numpy as np
@@ -29,6 +29,79 @@ class EmeiEnv(Env):
                 for dataset in self.data_url[param]:
                     self.offline_dataset_names.append("{}-{}".format(param, dataset))
 
+    def single_query(self, obs, action):
+        self.freeze()
+        self._set_state_by_obs(obs)
+        next_obs, reward, terminal, truncated, info = self.step(action)
+        self.unfreeze()
+        return next_obs, reward, terminal, truncated, info
+
+    def query(self, obs, action):
+        """
+        Give the environment's reflection to single or batch query.
+        :param obs: single or batch observations.
+        :param action: single or batch action.
+        :return: single or batch (next-obs, reward, done, terminal).
+        """
+        if len(obs.shape) == 1:  # single obs
+            assert len(action.shape) == 1
+            return self.single_query(obs, action)
+        else:
+            next_obs_list, reward_list, terminal_list, truncated_list, info_list = [], [], [], [], []
+            for i in range(obs.shape[0]):
+                next_obs, reward, terminal, truncated, info = self.single_query(obs[i], action[i])
+                next_obs_list.append(next_obs)
+                reward_list.append(reward)
+                terminal_list.append(terminal)
+                truncated_list.append(truncated)
+                info_list.append(info)
+            return np.array(next_obs_list), \
+                   np.array(reward_list), \
+                   np.array(terminal_list), \
+                   np.array(truncated_list), \
+                   np.array(info_list)
+
+    @staticmethod
+    def extend_dim(variable):
+        if variable is not None:
+            return variable.reshape(1, variable.shape[0])
+        else:
+            return None
+
+    def get_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
+        """Return the reward of single or batch interaction data.
+        :param obs: single or batch observation after taking action.
+        :param pre_obs: single or batch observation before taking action.
+        :param action: single or batch action to be taken.
+        :param state: single or batch state after taking action.
+        :param pre_state: single or batch state before taking action.
+        :return: single or batch reward.
+        """
+        frame = inspect.currentframe()
+        args, _, _, values = inspect.getargvalues(frame)
+        args.remove("self")
+        kwargs = dict(filter(lambda x: x[0] in args, values.items()))
+        if len(obs.shape) == 1:  # single obs
+            kwargs = dict([(arg, self.extend_dim(value)) for arg, value in kwargs.items()])
+            return float(self.get_batch_reward(**kwargs)[0, 0])
+        else:
+            return self.get_batch_reward(**kwargs)
+
+    def get_terminal(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
+        frame = inspect.currentframe()
+        args, _, _, values = inspect.getargvalues(frame)
+        args.remove("self")
+        kwargs = dict(filter(lambda x: x[0] in args, values.items()))
+        if len(obs.shape) == 1:  # single obs
+            kwargs = dict([(arg, self.extend_dim(value)) for arg, value in kwargs.items()])
+            return bool(self.get_batch_terminal(**kwargs)[0, 0])
+        else:
+            return self.get_batch_terminal(**kwargs)
+
+    ########################################
+    # methods to override
+    ########################################
+
     @abstractmethod
     def freeze(self):
         """
@@ -54,38 +127,6 @@ class EmeiEnv(Env):
         """
         raise NotImplementedError
 
-    def single_query(self, obs, action):
-        self.freeze()
-        self._set_state_by_obs(obs)
-        next_obs, reward, terminal, truncated, info = self.step(action)
-        self.unfreeze()
-        return next_obs, reward, terminal, truncated, info
-
-    def query(self, obs, action):
-        """
-        Give the environment's reflection to single or batch query.
-        :param obs: single or batch observations.
-        :param action: single or batch action.
-        :return: single or batch (next-obs, reward, done, terminal).
-        """
-        if len(obs.shape) == 1:  # single obs
-            assert len(action.shape) == 1
-            return self.single_query(obs, action)
-        else:
-            next_obs_list, reward_list, terminal_list, truncated_list,info_list = [], [], [], [],[]
-            for i in range(obs.shape[0]):
-                next_obs, reward, terminal, truncated, info = self.single_query(obs[i], action[i])
-                next_obs_list.append(next_obs)
-                reward_list.append(reward)
-                terminal_list.append(terminal)
-                truncated_list.append(truncated)
-                info_list.append(info)
-            return np.array(next_obs_list), \
-                   np.array(reward_list), \
-                   np.array(terminal_list), \
-                   np.array(truncated_list), \
-                   np.array(info_list)
-
     @abstractmethod
     def get_batch_agent_obs(self, obs):
         pass
@@ -97,45 +138,6 @@ class EmeiEnv(Env):
     @abstractmethod
     def get_batch_terminal(self, next_obs, pre_obs=None, action=None):
         pass
-
-    def get_agent_obs(self, obs):
-        if len(obs.shape) == 1:  # single obs
-            obs = obs.reshape(1, obs.shape[0])
-            return self.get_batch_agent_obs(obs)[0]
-        else:
-            return self.get_batch_agent_obs(obs)
-
-    def get_reward(self, next_obs, pre_obs=None, action=None):
-        """
-        Return the reward of single or batch next-obs.
-        :param next_obs: single or batch observations.
-        :return: single or batch reward.
-        """
-        if len(next_obs.shape) == 1:  # single obs
-            next_obs = next_obs.reshape(1, next_obs.shape[0])
-            if pre_obs is not None:
-                pre_obs = pre_obs.reshape(1, pre_obs.shape[0])
-            if action is not None:
-                action = action.reshape(1, action.shape[0])
-            return float(self.get_batch_reward(next_obs, pre_obs, action)[0, 0])
-        else:
-            return self.get_batch_reward(next_obs, pre_obs, action)
-
-    def get_terminal(self, next_obs, pre_obs=None, action=None):
-        """
-        Return the terminal of single or batch next-obs.
-        :param next_obs: single or batch observations.
-        :return: single or batch terminal.
-        """
-        if len(next_obs.shape) == 1:  # single obs
-            next_obs = next_obs.reshape(1, next_obs.shape[0])
-            if pre_obs is not None:
-                pre_obs = pre_obs.reshape(1, pre_obs.shape[0])
-            if action is not None:
-                action = action.reshape(1, action.shape[0])
-            return bool(self.get_batch_terminal(next_obs, pre_obs, action)[0, 0])
-        else:
-            return self.get_batch_terminal(next_obs, pre_obs, action)
 
     @property
     def dataset_names(self):

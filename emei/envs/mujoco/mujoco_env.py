@@ -116,9 +116,6 @@ class MujocoEnv(EmeiEnv):
     def _update_model(self):
         pass
 
-    def get_batch_agent_obs(self, obs):
-        return obs
-
     def freeze(self):
         self.frozen_state = [self.data.qpos.copy(), self.data.qvel.copy()]
 
@@ -126,27 +123,18 @@ class MujocoEnv(EmeiEnv):
         qpos, qvel = self.frozen_state
         self.set_state(qpos, qvel)
 
-    def _restore_pos_vel_from_obs(self, obs):
-        if obs.shape == (self.model.nq + self.model.nv,):
-            return obs[:self.model.nq], obs[self.model.nq:]
-        else:
-            raise NotImplementedError
+    def _get_state(self):
+        return np.concatenate([self.data.qpos, self.data.qvel]).ravel()
 
     def _set_state_by_obs(self, obs):
         self.set_state(*self._restore_pos_vel_from_obs(obs))
 
-    def _get_obs(self):
-        return np.concatenate([self.data.qpos, self.data.qvel]).ravel()
-
-    def _get_info(self):
-        return {}
-
     def step(self, action):
-        pre_obs = self._get_obs()
+        pre_state, pre_obs = self._get_state(), self._get_obs()
         self.do_simulation(action, self.freq_rate)
-        obs = self._get_obs()
-        reward = self.get_reward(obs, pre_obs, action)
-        terminal = self.get_terminal(obs, pre_obs, action)
+        state, obs = self._get_state(), self._get_obs()
+        reward = self.get_reward(obs, pre_obs, action, state=state, pre_state=pre_state)
+        terminal = self.get_terminal(obs, pre_obs, action, state=state, pre_state=pre_state)
         truncated = False
         info = self._get_info()
         return obs, reward, terminal, truncated, info
@@ -161,8 +149,21 @@ class MujocoEnv(EmeiEnv):
         self.observation_space = convert_observation_to_space(observation)
         return self.observation_space
 
-    # methods to override:
-    # ----------------------------
+    ########################################
+    # methods maybe to override
+    ########################################
+
+    def _restore_pos_vel_from_obs(self, obs):
+        if obs.shape == (self.model.nq + self.model.nv,):
+            return obs[:self.model.nq], obs[self.model.nq:]
+        else:
+            raise NotImplementedError
+
+    def _get_obs(self):
+        return np.concatenate([self.data.qpos, self.data.qvel]).ravel()
+
+    def _get_info(self):
+        return {}
 
     def reset_model(self):
         """

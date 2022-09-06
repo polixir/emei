@@ -5,7 +5,7 @@ ENV_NAMES = ["BoundaryInvertedPendulumBalancing",
              "BoundaryInvertedDoublePendulumSwingUp",
              "HopperRunning", "Walker2dRunning", "HalfCheetahRunning", "AntRunning",
              "HumanoidRunning", "SwimmerRunning"]
-DATASETS = ["random", "medium", "expert", "medium-replay", "expert-replay"]
+DATASETS = ["random", "uniform", "medium", "expert", "medium-replay", "expert-replay"]
 params = ["freq_rate=1&time_step=0.02"]
 
 URL_INFOS = {}

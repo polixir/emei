@@ -1,6 +1,7 @@
 import argparse
 import pathlib
 import gym
+import numpy as np
 
 import emei
 from zoo.soft_actor_critic.sac import SAC
@@ -19,29 +20,34 @@ def run(exp_dir,
     env = gym.make(args.task.name, new_step_api=True, **kwargs)
     env = cast(emei.EmeiEnv, env)
 
-    agent = SAC(env.observation_space, env.action_space, sac_args, env.get_agent_obs)
+    agent = SAC(env.observation_space, env.action_space, sac_args)
     agent.load_checkpoint(exp_dir / "{}-agent.pth".format(agent_type),
                           evaluate=True,
                           reset_device=device)
 
-    state = env.reset(seed=10086)
+    obs = env.reset(seed=10086)
     env.render()
     episode_reward = 0
     episode_length = 0
     while True:
-        action = agent.select_action(state, evaluate=True)
-        next_state, reward, terminal, truncated, _ = env.step(action)
+        action = agent.select_action(obs, evaluate=True)
+        next_obs, reward, terminal, truncated, _ = env.step(action)
+        # pos, vel = env.env.restore_pos_vel_from_obs(next_obs)
+        # re_state = np.concatenate([pos, vel])
+        # print(re_state == env.env.get_state())
+        # if not (re_state == env.env.get_state()).all():
+        #     print(re_state, env.env.get_state())
         env.render()
 
         episode_reward += reward
         episode_length += 1
         if terminal or truncated:
-            state = env.reset()
+            obs = env.reset()
             print("reward:{}, length:{}".format(episode_reward, episode_length))
             episode_reward = 0
             episode_length = 0
         else:
-            state = next_state
+            obs = next_obs
 
 
 if __name__ == '__main__':
