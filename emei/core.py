@@ -31,7 +31,7 @@ class EmeiEnv(Env):
 
     def single_query(self, obs, action):
         self.freeze()
-        self._set_state_by_obs(obs)
+        self.set_state_by_obs(obs)
         next_obs, reward, terminal, truncated, info = self.step(action)
         self.unfreeze()
         return next_obs, reward, terminal, truncated, info
@@ -119,7 +119,7 @@ class EmeiEnv(Env):
         raise NotImplementedError
 
     @abstractmethod
-    def _set_state_by_obs(self, obs):
+    def set_state_by_obs(self, obs):
         """
         Set model state by observation, only for MDPs.
         :param obs: single observation

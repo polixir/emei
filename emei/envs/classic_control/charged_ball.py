@@ -94,7 +94,7 @@ class BaseChargedBallEnv(BaseControlEnv):
     def _get_obs(self, state):
         return np.array(state["free_state"], dtype=np.float32)
 
-    def _set_state_by_obs(self, obs):
+    def set_state_by_obs(self, obs):
         self.state = dict(on_circle=True,
                           circle_state=np.empty(2, dtype=np.float32),
                           free_state=np.empty(4, dtype=np.float32))

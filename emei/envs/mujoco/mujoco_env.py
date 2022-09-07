@@ -126,7 +126,7 @@ class MujocoEnv(EmeiEnv):
     def _get_state(self):
         return np.concatenate([self.data.qpos, self.data.qvel]).ravel()
 
-    def _set_state_by_obs(self, obs):
+    def set_state_by_obs(self, obs):
         self.set_state(*self._restore_pos_vel_from_obs(obs))
 
     def step(self, action):

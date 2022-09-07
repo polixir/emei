@@ -44,7 +44,7 @@ class BaseControlEnv(EmeiEnv):
     def unfreeze(self) -> None:
         self.state = self.frozen_state.copy()
 
-    def _set_state_by_obs(self, obs):
+    def set_state_by_obs(self, obs):
         self.state = obs
 
     def _get_obs(self, state):
