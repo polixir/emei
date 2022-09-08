@@ -1,33 +1,146 @@
-import os
-import h5py
-import urllib.request
 import inspect
-from abc import ABC, abstractmethod
-from gym import Env
+import pathlib
+from collections import defaultdict
+from typing import Union
+from abc import abstractmethod
+
+import gym
+import h5py
 import numpy as np
 from tqdm import tqdm
+import urllib.request
+
 from emei.offline_info import URL_INFOS
-from collections import defaultdict
 
-DATASET_PATH = os.path.expanduser('~/.emei/offline_data')
+DATASET_PATH = pathlib.Path.home() / ".emei" / "offline_data"
 
 
-class EmeiEnv(Env):
+class Freezable:
+    def __init__(self):
+        self.frozen_state = None
+
+    @abstractmethod
+    def freeze(self):
+        """
+        Freeze the environment, for rollout-test or query.
+        :return: None
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def unfreeze(self):
+        """
+        Unfreeze the environment, back to normal interaction.
+        :return: None
+        """
+        raise NotImplementedError
+
+
+class OfflineEnv(gym.Env):
+    def __init__(self):
+        env_name = self.__class__.__name__[:-3]
+        self._offline_dataset_names = []
+        if env_name in URL_INFOS:
+            self.data_url = URL_INFOS[env_name]
+            self._offline_dataset_names = []
+            for param in self.data_url:
+                for dataset in self.data_url[param]:
+                    self._offline_dataset_names.append("{}-{}".format(param, dataset))
+
+    @property
+    def dataset_names(self):
+        return self._offline_dataset_names
+
+    @staticmethod
+    def load_h5_data(h5path):
+        """
+        Load data of h5-file.
+        :param h5path: path of h5 file.
+        :return: dataset.
+        """
+        keys = []
+
+        def visitor(name, item):
+            if isinstance(item, h5py.Dataset):
+                keys.append(name)
+
+        data_dict = {}
+        with h5py.File(h5path, 'r') as f:
+            f.visititems(visitor)
+            for k in tqdm(keys, desc="load datafile"):
+                try:  # first try loading as an array
+                    data_dict[k] = f[k][:]
+                except ValueError as e:  # try loading as a scalar
+                    data_dict[k] = f[k][()]
+        return data_dict
+
+    @staticmethod
+    def get_path_from_url(dataset_url: Union[str, pathlib.Path]) -> pathlib.Path:
+        """
+        Return the data file path corresponding to the url.
+        :param dataset_url: web url.
+        :return: local file path.
+        """
+        env_name, param, dataset_name = dataset_url.split('/')[-3:]
+        dataset_dir = DATASET_PATH / env_name / param
+        dataset_dir.mkdir(exist_ok=True)
+        return dataset_dir / dataset_name
+
+    def download_dataset(self, dataset_url: Union[str, pathlib.Path]) -> pathlib.Path:
+        """
+        Return the data file path corresponding to the url, downloads if it does not exist.
+        :param dataset_url: web url.
+        :return: local file path.
+        """
+        dataset_filepath = self.get_path_from_url(dataset_url)
+        if not dataset_filepath.exists():
+            print('Downloading dataset:', dataset_url, 'to', dataset_filepath)
+            urllib.request.urlretrieve(dataset_url, dataset_filepath)
+        if not dataset_filepath.exists():
+            raise IOError("Failed to download dataset from %s" % dataset_url)
+        return dataset_filepath
+
+    def get_dataset(self, dataset_name):
+        assert dataset_name in self._offline_dataset_names
+
+        joint_pos = dataset_name.find("-")
+        param, dataset_type = dataset_name[:joint_pos], dataset_name[joint_pos + 1:]
+        url = self.data_url[param][dataset_type]
+        h5path = self.download_dataset(url)
+
+        data_dict = self.load_h5_data(h5path)
+
+        # Run a few quick sanity checks
+        for key in ['observations', 'observations', 'actions', 'rewards', 'terminals', "timeouts"]:
+            assert key in data_dict, 'Dataset is missing key %s' % key
+
+        return data_dict
+
+    def get_sequence_dataset(self, dataset_name):
+        dataset = self.get_dataset(dataset_name)
+        N = dataset['rewards'].shape[0]
+        data = defaultdict(lambda: defaultdict(list))
+
+        sequence_num = 0
+        for i in range(N):
+            done_bool = bool(dataset['terminals'][i])
+            final_timestep = dataset['timeouts'][i]
+
+            for k in dataset:
+                data[sequence_num][k].append(dataset[k][i])
+
+            if done_bool or final_timestep:
+                sequence_num += 1
+        return data
+
+
+class EmeiEnv(Freezable, OfflineEnv):
     def __init__(self):
         """
         Abstract class for all Emei environments to better support model-based RL and offline RL.
         """
-        # for freezable
-        self.frozen_state = None
-        # for downloadable
-        env_name = self.__class__.__name__[:-3]
-        self.offline_dataset_names = []
-        if env_name in URL_INFOS:
-            self.data_url = URL_INFOS[env_name]
-            self.offline_dataset_names = []
-            for param in self.data_url:
-                for dataset in self.data_url[param]:
-                    self.offline_dataset_names.append("{}-{}".format(param, dataset))
+        Freezable.__init__(self)
+        OfflineEnv.__init__(self)
 
     def single_query(self, obs, action):
         self.freeze()
@@ -103,22 +216,6 @@ class EmeiEnv(Env):
     ########################################
 
     @abstractmethod
-    def freeze(self):
-        """
-        Freeze the environment, for rollout-test or query.
-        :return: None
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def unfreeze(self):
-        """
-        Unfreeze the environment, back to normal interaction.
-        :return: None
-        """
-        raise NotImplementedError
-
-    @abstractmethod
     def set_state_by_obs(self, obs):
         """
         Set model state by observation, only for MDPs.
@@ -132,95 +229,9 @@ class EmeiEnv(Env):
         pass
 
     @abstractmethod
-    def get_batch_reward(self, next_obs, pre_obs=None, action=None):
+    def get_batch_reward(self, next_obs, pre_obs=None, action=None, state=None, pre_state=None):
         pass
 
     @abstractmethod
-    def get_batch_terminal(self, next_obs, pre_obs=None, action=None):
+    def get_batch_terminal(self, next_obs, pre_obs=None, action=None, state=None, pre_state=None):
         pass
-
-    @property
-    def dataset_names(self):
-        return self.offline_dataset_names
-
-    def get_dataset(self, dataset_name):
-        assert dataset_name in self.offline_dataset_names
-
-        joint_pos = dataset_name.find("-")
-        param, dataset_type = dataset_name[:joint_pos], dataset_name[joint_pos + 1:]
-        url = self.data_url[param][dataset_type]
-        h5path = download_dataset_from_url(url)
-
-        data_dict = {}
-        with h5py.File(h5path, 'r') as dataset_file:
-            for k in tqdm(get_keys(dataset_file), desc="load datafile"):
-                try:  # first try loading as an array
-                    data_dict[k] = dataset_file[k][:]
-                except ValueError as e:  # try loading as a scalar
-                    data_dict[k] = dataset_file[k][()]
-
-        # Run a few quick sanity checks
-        for key in ['observations', 'observations', 'actions', 'rewards', 'terminals', "timeouts"]:
-            assert key in data_dict, 'Dataset is missing key %s' % key
-
-        return data_dict
-
-    def get_sequence_dataset(self, dataset_name):
-        dataset = self.get_dataset(dataset_name)
-        N = dataset['rewards'].shape[0]
-        data = defaultdict(lambda: defaultdict(list))
-
-        sequence_num = 0
-        for i in range(N):
-            done_bool = bool(dataset['terminals'][i])
-            final_timestep = dataset['timeouts'][i]
-
-            for k in dataset:
-                data[sequence_num][k].append(dataset[k][i])
-
-            if done_bool or final_timestep:
-                sequence_num += 1
-        return data
-
-
-def get_keys(h5file):
-    """
-    Get the keys of h5-file.
-    :param h5file: binary file of h5 format.
-    :return: keys.
-    """
-    keys = []
-
-    def visitor(name, item):
-        if isinstance(item, h5py.Dataset):
-            keys.append(name)
-
-    h5file.visititems(visitor)
-    return keys
-
-
-def filepath_from_url(dataset_url: str) -> str:
-    """
-    Return the data file path corresponding to the url.
-    :param dataset_url: web url.
-    :return: local file path.
-    """
-    env_name, param, dataset_name = dataset_url.split('/')[-3:]
-    os.makedirs(os.path.join(DATASET_PATH, env_name, param), exist_ok=True)
-    dataset_filepath = os.path.join(DATASET_PATH, env_name, param, dataset_name)
-    return dataset_filepath
-
-
-def download_dataset_from_url(dataset_url: str) -> str:
-    """
-    Return the data file path corresponding to the url, downloads if it does not exist.
-    :param dataset_url: web url.
-    :return: local file path.
-    """
-    dataset_filepath = filepath_from_url(dataset_url)
-    if not os.path.exists(dataset_filepath):
-        print('Downloading dataset:', dataset_url, 'to', dataset_filepath)
-        urllib.request.urlretrieve(dataset_url, dataset_filepath)
-    if not os.path.exists(dataset_filepath):
-        raise IOError("Failed to download dataset from %s" % dataset_url)
-    return dataset_filepath
