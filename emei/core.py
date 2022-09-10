@@ -1,7 +1,7 @@
 import inspect
 import pathlib
 from collections import defaultdict
-from typing import Union
+from typing import Union, Dict
 from abc import abstractmethod
 
 import gym
@@ -19,20 +19,24 @@ class Freezable:
     def __init__(self):
         self.frozen_state = None
 
-    @abstractmethod
     def freeze(self):
         """
         Freeze the environment, for rollout-test or query.
         :return: None
         """
-        raise NotImplementedError
+        self.frozen_state = self.get_current_state(copy=True)
 
-    @abstractmethod
     def unfreeze(self):
         """
         Unfreeze the environment, back to normal interaction.
         :return: None
         """
+        self.set_state(self.frozen_state)
+
+    def get_current_state(self, copy: bool = True):
+        raise NotImplementedError
+
+    def set_state(self, state):
         raise NotImplementedError
 
 
@@ -48,11 +52,11 @@ class OfflineEnv(gym.Env):
                     self._offline_dataset_names.append("{}-{}".format(param, dataset))
 
     @property
-    def dataset_names(self):
+    def dataset_names(self) -> list:
         return self._offline_dataset_names
 
     @staticmethod
-    def load_h5_data(h5path):
+    def load_h5_data(h5path: Union[str, pathlib.Path]) -> Dict[(str, np.ndarray)]:
         """
         Load data of h5-file.
         :param h5path: path of h5 file.
@@ -100,7 +104,7 @@ class OfflineEnv(gym.Env):
             raise IOError("Failed to download dataset from %s" % dataset_url)
         return dataset_filepath
 
-    def get_dataset(self, dataset_name):
+    def get_dataset(self, dataset_name: str) -> Dict[(str, np.ndarray)]:
         assert dataset_name in self._offline_dataset_names
 
         joint_pos = dataset_name.find("-")
@@ -116,7 +120,7 @@ class OfflineEnv(gym.Env):
 
         return data_dict
 
-    def get_sequence_dataset(self, dataset_name):
+    def get_sequence_dataset(self, dataset_name: str) -> Dict[(str, np.ndarray)]:
         dataset = self.get_dataset(dataset_name)
         N = dataset['rewards'].shape[0]
         data = defaultdict(lambda: defaultdict(list))
@@ -211,9 +215,21 @@ class EmeiEnv(Freezable, OfflineEnv):
         else:
             return self.get_batch_terminal(**kwargs)
 
-    ########################################
+    def get_init_obs(self, batch_size):
+        if batch_size == 1:
+            return self.get_batch_obs(self.get_batch_init_state(batch_size=1))[0]
+        else:
+            return self.get_batch_obs(self.get_batch_init_state(batch_size=batch_size))
+
+    def get_obs(self, state):
+        if len(state.shape) == 1:
+            return self.get_batch_obs(state.reshape(1, state.shape[0]))[0]
+        else:
+            return self.get_batch_obs(state)
+
+    ################################################################################
     # methods to override
-    ########################################
+    ################################################################################
 
     @abstractmethod
     def set_state_by_obs(self, obs):
@@ -235,3 +251,14 @@ class EmeiEnv(Freezable, OfflineEnv):
     @abstractmethod
     def get_batch_terminal(self, next_obs, pre_obs=None, action=None, state=None, pre_state=None):
         pass
+
+    @abstractmethod
+    def get_batch_init_state(self, batch_size):
+        pass
+
+    ########################################
+    # methods maybe to override
+    ########################################
+
+    def get_batch_obs(self, batch_state):
+        return batch_state

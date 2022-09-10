@@ -1,5 +1,12 @@
 name: "AntRunning-v0"
-params: "freq_rate=1&time_step=0.02"
+freq_rate: 1
+time_step: 0.02
+
+env:
+   _target_: gym.make
+   id: ${task.name}
+   freq_rate: 1
+   time_step: 0.02
 
 eval_freq: 5000
 batch_size: 256

@@ -21,26 +21,18 @@ class BaseInvertedPendulumEnv(MujocoEnv, utils.EzPickle):
                            camera_config=DEFAULT_CAMERA_CONFIG,
                            reset_noise_scale=reset_noise_scale, )
 
-    def _get_obs(self):
-        return np.concatenate(
-            [
-                self.data.qpos[:1],  # cart x pos
-                np.sin(self.data.qpos[1:]),  # link angles
-                np.cos(self.data.qpos[1:]),
-                self.data.qvel
-            ]
-        ).ravel()
+    def get_batch_obs(self, batch_state):
+        qpos, qvel = batch_state[:, :self.model.nq], batch_state[:, self.model.nq:]
+        batch_obs = np.concatenate([qpos[:, :1], np.sin(qpos[:, 1:]), np.cos(qpos[:, 1:]), qvel], axis=-1)
+        return batch_obs
 
-    def _restore_pos_vel_from_obs(self, obs):
-        theta = np.angle(1j * obs[1] + obs[2])
-        return np.array([obs[0], theta]), obs[-2:]
-
-    def restore_pos_vel_from_obs(self, obs):
-        theta = np.angle(1j * obs[1] + obs[2])
-        return np.array([obs[0], theta]), obs[-2:]
-
-    def get_state(self):
-        return self._get_state()
+    # def _restore_pos_vel_from_obs(self, obs):
+    #     theta = np.angle(1j * obs[1] + obs[2])
+    #     return np.array([obs[0], theta]), obs[-2:]
+    #
+    # def restore_pos_vel_from_obs(self, obs):
+    #     theta = np.angle(1j * obs[1] + obs[2])
+    #     return np.array([obs[0], theta]), obs[-2:]
 
     @property
     def causal_graph(self):

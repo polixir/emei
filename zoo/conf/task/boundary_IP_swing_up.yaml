@@ -1,7 +1,14 @@
 name: "BoundaryInvertedPendulumSwingUp-v0"
-params: "freq_rate=${task.freq_rate}&time_step=${task.time_step}"
 freq_rate: 1
 time_step: 0.02
+
+params: "freq_rate=${task.freq_rate}&time_step=${task.time_step}"
+env:
+   _target_: gym.make
+   id: ${task.name}
+   freq_rate: 1
+   time_step: 0.02
+   new_step_api: false
 
 # sac
 start_steps: 1000

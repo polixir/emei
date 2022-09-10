@@ -1,19 +1,16 @@
 name: SAC
 
-num_steps: ${task.num_steps}
-policy: Gaussian
-eval: true
-gamma: 0.99
-tau: 0.005
-lr: 0.0003
-alpha: 0.2
-automatic_entropy_tuning: true
-seed: ${seed}
-batch_size: 256
-hidden_size: 256
-updates_per_step: 1
-start_steps: ${task.start_steps}
-target_update_interval: 1
-replay_size: 1000000
-eval_freq: ${task.eval_freq}
-device: ${device}
+agent:
+  _target_: stable_baselines3.sac.SAC
+  policy: "MlpPolicy"
+  env: ${task.env}
+  learning_starts: 100
+  batch_size: 256
+  tau: 0.005
+  gamma: 0.99
+  ent_coef: "auto"
+  target_entropy: "auto"
+  verbose: 0
+  seed: ${seed}
+  device: ${device}
+
