@@ -26,13 +26,9 @@ class BaseInvertedPendulumEnv(MujocoEnv, utils.EzPickle):
         batch_obs = np.concatenate([qpos[:, :1], np.sin(qpos[:, 1:]), np.cos(qpos[:, 1:]), qvel], axis=-1)
         return batch_obs
 
-    # def _restore_pos_vel_from_obs(self, obs):
-    #     theta = np.angle(1j * obs[1] + obs[2])
-    #     return np.array([obs[0], theta]), obs[-2:]
-    #
-    # def restore_pos_vel_from_obs(self, obs):
-    #     theta = np.angle(1j * obs[1] + obs[2])
-    #     return np.array([obs[0], theta]), obs[-2:]
+    def get_batch_state(self, batch_obs):
+        theta = np.angle(1j * batch_obs[:, 1] + batch_obs[:, 2])
+        return np.concatenate([batch_obs[:, :1], theta[:, None], batch_obs[:, -2:]], axis=-1)
 
     @property
     def causal_graph(self):
@@ -132,6 +128,10 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
                  freq_rate: int = 1,
                  time_step: float = 0.02,
                  integrator="standard_euler",
+                 # reward weight
+                 forward_reward_weight=1,
+                 ctrl_cost_weight=0.1,
+                 healthy_reward=1,
                  # noise
                  reset_noise_scale=0.2):
         BaseInvertedPendulumEnv.__init__(self,
@@ -139,6 +139,7 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
                                          time_step=time_step,
                                          integrator=integrator,
                                          reset_noise_scale=reset_noise_scale)
+
 
     def _update_model(self):
         self.model.stat.extent = 4
@@ -172,3 +173,10 @@ if __name__ == '__main__':
 
     env = TimeLimit(ReboundInvertedPendulumSwingUpEnv(), max_episode_steps=1000, new_step_api=True)
     random_policy_test(env, is_render=True)
+
+    # env = ReboundInvertedPendulumSwingUpEnv()
+    # b_s = np.random.rand(5, 4)
+    # b_o = env.get_batch_obs(b_s)
+    # print(b_s)
+    # print(env.get_batch_state(b_o))
+    # print((b_s == env.get_batch_state(b_o)).all())

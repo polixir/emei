@@ -11,6 +11,7 @@ env:
    new_step_api: false
 
 # sac
+sac_ent_coef: 0.5
 start_steps: 1000
 eval_freq: 10
 
@@ -19,7 +20,7 @@ num_steps: 1000000
 
 medium_reward: 400
 expert_reward: 950
-uniform_sample_num: 200000
-random_sample_num: 200000
-medium_sample_num: 200000
-expert_sample_num: 200000
+uniform_sample_num: 0
+random_sample_num: 0
+medium_sample_num: 0
+expert_sample_num: 0

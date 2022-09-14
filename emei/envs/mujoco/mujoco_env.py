@@ -239,18 +239,16 @@ class MujocoEnv(EmeiEnv):
             self._viewers = {}
 
     ########################################
-    # methods maybe to override
+    # methods maybe override by sub-class
     ########################################
 
     def _update_model(self):
         pass
 
-    def set_state_by_obs(self, obs):
-        self.set_state(*self._restore_pos_vel_from_obs(obs))
-
-    def _restore_pos_vel_from_obs(self, obs):
-        if obs.shape == (self.model.nq + self.model.nv,):
-            return obs[:self.model.nq], obs[self.model.nq:]
+    def get_batch_state(self, batch_obs):
+        assert len(batch_obs.shape) == 2
+        if batch_obs.shape[1] == (self.model.nq + self.model.nv,):
+            return batch_obs.copy()
         else:
             raise NotImplementedError
 
@@ -264,11 +262,9 @@ class MujocoEnv(EmeiEnv):
             else:
                 setattr(self.viewer.cam, key, value)
 
-    # -----------------------------
-
-    @property
-    def dt(self):
-        return self.model.opt.timestep * self.freq_rate
+    ########################################
+    # others
+    ########################################
 
     def do_simulation(self, ctrl, n_frames):
         if np.array(ctrl).shape != self.action_space.shape:

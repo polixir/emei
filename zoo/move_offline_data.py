@@ -7,9 +7,9 @@ ROOT_DIR = os.path.dirname(ZOO_DIR)
 ZOO_EXP_DIR = os.path.join(ROOT_DIR, "zoo_exp")
 
 FILE_NEEDED = ['uniform.h5',
-               'random.h5', 'random-agent.pth',
-               'medium.h5', 'medium-replay.h5', 'medium-agent.pth',
-               'expert.h5', 'expert-replay.h5', 'expert-agent.pth',
+               'SAC-random.h5', 'SAC-random-agent.zip',
+               'SAC-medium.h5', 'SAC-medium-replay.h5', 'SAC-medium-agent.zip',
+               'SAC-expert.h5', 'SAC-expert-replay.h5', 'SAC-expert-agent.zip',
                'sampling_info.txt']
 DIR_NEEDED = ['tb']
 

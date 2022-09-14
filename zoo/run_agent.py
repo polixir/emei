@@ -1,42 +1,39 @@
-import argparse
-import pathlib
 import gym
-import numpy as np
-
+import argparse
+import hydra
 import emei
-from zoo.soft_actor_critic.sac import SAC
-from typing import cast
-from zoo.util import to_num, save_as_h5, load_hydra_cfg
+import pathlib
+import stable_baselines3
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
+from stable_baselines3.common.base_class import BaseAlgorithm
+
+from zoo.util import load_hydra_cfg
 
 
 def run(exp_dir,
-        type="best",
+        type="expert",
         device="cuda:0"):
     exp_dir = pathlib.Path(exp_dir)
     args = load_hydra_cfg(exp_dir, reset_device=device)
-    sac_args = args.algorithm
 
-    kwargs = dict([(item.split("=")[0], to_num(item.split("=")[1])) for item in args.task.params.split("&")])
-    env = gym.make(args.task.name, new_step_api=True, **kwargs)
-    env = cast(emei.EmeiEnv, env)
+    agent_class: BaseAlgorithm = eval(args.algorithm.agent._target_)
+    agent = agent_class.load(exp_dir / "{}-{}-agent".format(args.algorithm.name, type))
 
-    agent = SAC(env.observation_space, env.action_space, sac_args)
-    agent.load_checkpoint(exp_dir / "{}-agent.pth".format(type),
-                          evaluate=True,
-                          reset_device=device)
+    env: emei.EmeiEnv = hydra.utils.instantiate(args.task.env)
+    obs = env.reset(seed=args.seed)
+    env.action_space.seed(seed=args.seed)
 
-    obs = env.reset(seed=10086)
     env.render()
     episode_reward = 0
     episode_length = 0
     while True:
-        action = agent.select_action(obs, evaluate=False)
-        next_obs, reward, terminal, truncated, _ = env.step(action)
+        action, state = agent.predict(obs, deterministic=False)
+        next_obs, reward, done, _ = env.step(action)
         env.render()
 
         episode_reward += reward
         episode_length += 1
-        if terminal or truncated:
+        if done:
             obs = env.reset()
             print("reward:{}, length:{}".format(episode_reward, episode_length))
             episode_reward = 0
@@ -48,7 +45,7 @@ def run(exp_dir,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("exp_dir", type=str)
-    parser.add_argument("--type", type=str, default="best")
+    parser.add_argument("--type", type=str, default="expert")
     parser.add_argument("--device", type=str, default="cuda:0")
     args = parser.parse_args()
 

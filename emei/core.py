@@ -224,18 +224,19 @@ class EmeiEnv(Freezable, OfflineEnv):
         else:
             return self.get_batch_obs(state)
 
-    ################################################################################
-    # methods to override
-    ################################################################################
-
-    @abstractmethod
     def set_state_by_obs(self, obs):
         """
         Set model state by observation, only for MDPs.
         :param obs: single observation
         :return: None
         """
-        raise NotImplementedError
+        state = self.get_batch_state(obs.reshape(1, obs.shape[0]))[0]
+        self.set_state(state)
+
+
+    ################################################################################
+    # methods to override
+    ################################################################################
 
     @abstractmethod
     def get_batch_agent_obs(self, obs):
@@ -258,4 +259,7 @@ class EmeiEnv(Freezable, OfflineEnv):
     ########################################
 
     def get_batch_obs(self, batch_state):
-        return batch_state
+        return batch_state.copy()
+
+    def get_batch_state(self, batch_obs):
+        return batch_obs.copy()

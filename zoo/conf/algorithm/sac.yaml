@@ -8,9 +8,10 @@ agent:
   batch_size: 256
   tau: 0.005
   gamma: 0.99
-  ent_coef: "auto"
+  ent_coef: ${task.sac_ent_coef}
   target_entropy: "auto"
   verbose: 0
   seed: ${seed}
   device: ${device}
+  tensorboard_log: tb
 

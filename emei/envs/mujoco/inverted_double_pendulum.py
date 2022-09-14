@@ -35,7 +35,7 @@ class BaseInvertedDoublePendulumEnv(MujocoEnv, utils.EzPickle):
             ]
         ).ravel()
 
-    def _restore_pos_vel_from_obs(self, obs):
+    def restore_state_from_obs(self, obs):
         theta1 = np.angle(1j * obs[1] + obs[2])
         theta2 = np.angle(1j * obs[3] + obs[4])
         return np.array([obs[0], theta1, theta2]), obs[-3:]
