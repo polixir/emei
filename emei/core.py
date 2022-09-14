@@ -215,11 +215,8 @@ class EmeiEnv(Freezable, OfflineEnv):
         else:
             return self.get_batch_terminal(**kwargs)
 
-    def get_init_obs(self, batch_size):
-        if batch_size == 1:
-            return self.get_batch_obs(self.get_batch_init_state(batch_size=1))[0]
-        else:
-            return self.get_batch_obs(self.get_batch_init_state(batch_size=batch_size))
+    def get_batch_init_obs(self, batch_size):
+        return self.get_batch_obs(self.get_batch_init_state(batch_size=batch_size))
 
     def get_obs(self, state):
         if len(state.shape) == 1:
