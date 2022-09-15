@@ -10,7 +10,7 @@ FILE_NEEDED = ['uniform.h5',
                'SAC-random.h5', 'SAC-random-agent.zip',
                'SAC-medium.h5', 'SAC-medium-replay.h5', 'SAC-medium-agent.zip',
                'SAC-expert.h5', 'SAC-expert-replay.h5', 'SAC-expert-agent.zip',
-               'sampling_info.txt']
+               'rollout_info.json']
 DIR_NEEDED = ['tb']
 
 

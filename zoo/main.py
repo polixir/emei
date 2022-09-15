@@ -3,7 +3,7 @@ import hydra
 import emei
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.base_class import BaseAlgorithm
-
+from stable_baselines3.common.logger import configure
 from zoo.util import rollout, save_as_h5, get_replay_buffer, save_rollout_info
 
 
@@ -87,6 +87,8 @@ def main(args):
     rollout_and_save(eval_env, args.task.random_sample_num, model, False, args.algorithm.name + "-random")
     rollout_and_save(eval_env, args.task.uniform_sample_num, None, False, "uniform")
 
+    logger = configure("tb", format_strings=["tensorboard"])
+    model.set_logger(logger)
     model.learn(total_timesteps=args.task.num_steps, callback=eval_callback)
 
 

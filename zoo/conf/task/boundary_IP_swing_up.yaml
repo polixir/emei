@@ -6,8 +6,8 @@ params: "freq_rate=${task.freq_rate}&time_step=${task.time_step}"
 env:
    _target_: gym.make
    id: ${task.name}
-   freq_rate: 1
-   time_step: 0.02
+   freq_rate: ${task.freq_rate}
+   time_step: ${task.time_step}
    new_step_api: false
 
 # sac
@@ -20,7 +20,7 @@ num_steps: 1000000
 
 medium_reward: 400
 expert_reward: 950
-uniform_sample_num: 0
-random_sample_num: 0
-medium_sample_num: 0
-expert_sample_num: 0
+uniform_sample_num: 100000
+random_sample_num: 100000
+medium_sample_num: 100000
+expert_sample_num: 100000

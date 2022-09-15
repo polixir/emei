@@ -87,7 +87,7 @@ class OfflineEnv(gym.Env):
         """
         env_name, param, dataset_name = dataset_url.split('/')[-3:]
         dataset_dir = DATASET_PATH / env_name / param
-        dataset_dir.mkdir(exist_ok=True)
+        dataset_dir.mkdir(parents=True, exist_ok=True)
         return dataset_dir / dataset_name
 
     def download_dataset(self, dataset_url: Union[str, pathlib.Path]) -> pathlib.Path:
@@ -232,7 +232,6 @@ class EmeiEnv(Freezable, OfflineEnv):
         """
         state = self.get_batch_state(obs.reshape(1, obs.shape[0]))[0]
         self.set_state(state)
-
 
     ################################################################################
     # methods to override
