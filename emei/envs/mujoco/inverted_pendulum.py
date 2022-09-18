@@ -25,6 +25,13 @@ class BaseInvertedPendulumEnv(MujocoEnv, utils.EzPickle):
                            camera_config=DEFAULT_CAMERA_CONFIG,
                            reset_noise_scale=reset_noise_scale, )
 
+        self._causal_graph = np.array([[0, 0, 0, 0, 0],  # x
+                                       [0, 1, 1, 1, 1],  # sin theta
+                                       [0, 1, 1, 1, 1],  # cos theta
+                                       [1, 0, 0, 0, 0],  # v
+                                       [0, 1, 1, 1, 1],  # omega
+                                       [0, 0, 0, 1, 1]])  # action
+
     def get_batch_obs(self, batch_state):
         if self.sin_cos:
             qpos, qvel = batch_state[:, :self.model.nq], batch_state[:, self.model.nq:]
@@ -40,15 +47,6 @@ class BaseInvertedPendulumEnv(MujocoEnv, utils.EzPickle):
         else:
             batch_state = batch_obs.copy()
         return batch_state
-
-    @property
-    def causal_graph(self):
-        return np.array([[0, 0, 0, 1, 0, 0],  # dot x
-                         [0, 1, 1, 0, 1, 0],  # dot sin theta
-                         [0, 1, 1, 0, 1, 0],  # dot cos theta
-                         [0, 1, 1, 0, 1, 1],  # dot v
-                         [0, 1, 1, 0, 1, 1],  # dot omega
-                         [0, 0, 0, 0, 0, 0]])  # reward
 
 
 class ReboundInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
@@ -145,12 +143,6 @@ class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
         notdone = np.isfinite(obs).all(axis=1)
         return np.logical_not(notdone).reshape([obs.shape[0], 1])
 
-    @property
-    def causal_graph(self):
-        graph = super(ReboundInvertedPendulumSwingUpEnv, self).causal_graph.copy()
-        graph[-1] = [0, 1, 1, 0, 1, 0]
-        return graph
-
 
 class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
     def __init__(self,
@@ -190,20 +182,16 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
                   & np.isfinite(obs).all(axis=1)
         return np.logical_not(notdone).reshape([obs.shape[0], 1])
 
-    @property
-    def causal_graph(self):
-        graph = super(BoundaryInvertedPendulumSwingUpEnv, self).causal_graph.copy()
-        graph[-1] = [0, 1, 1, 0, 1, 0]
-        return graph
-
 
 if __name__ == '__main__':
     from emei.util import random_policy_test
     from gym.wrappers import TimeLimit
 
-    env = TimeLimit(ReboundInvertedPendulumSwingUpEnv(sin_cos=True), max_episode_steps=1000, new_step_api=True)
-    random_policy_test(env, is_render=False)
+    # env = TimeLimit(ReboundInvertedPendulumSwingUpEnv(sin_cos=True), max_episode_steps=1000, new_step_api=True)
+    # random_policy_test(env, is_render=False)
 
+    env = ReboundInvertedPendulumSwingUpEnv(sin_cos=True)
+    print(env.get_causal_graph(2))
     # env = ReboundInvertedPendulumSwingUpEnv()
     # b_s = np.random.rand(5, 4)
     # b_o = env.get_batch_obs(b_s)

@@ -145,6 +145,24 @@ class EmeiEnv(Freezable, OfflineEnv):
         """
         Freezable.__init__(self)
         OfflineEnv.__init__(self)
+        self._causal_graph = None
+
+    def get_causal_graph(self, repeat_times=1):
+        g = self._causal_graph.copy()
+        num_obs, num_action = self.observation_space.shape[0], self.action_space.shape[0]
+        assert g.shape == (num_obs + num_action, num_obs)
+        if repeat_times == 1:
+            return g
+        else:
+            aug_g = np.zeros([num_obs + num_action, num_obs + num_action])
+            aug_g[:, :num_obs] = g.copy()
+
+            prod_g = aug_g.copy()
+            sum_g = np.zeros([num_obs + num_action, num_obs + num_action])
+            for i in range(repeat_times):
+                sum_g += prod_g
+                prod_g = np.matmul(prod_g, aug_g)
+            return (sum_g > 0).astype(int)[:, :num_obs]
 
     def single_query(self, obs, action):
         self.freeze()
