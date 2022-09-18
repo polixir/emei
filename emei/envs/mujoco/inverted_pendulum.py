@@ -10,8 +10,12 @@ class BaseInvertedPendulumEnv(MujocoEnv, utils.EzPickle):
                  freq_rate: int = 1,
                  time_step: float = 0.02,
                  integrator="standard_euler",
+                 # obs
+                 sin_cos: bool = True,
                  # noise
                  reset_noise_scale=0.1):
+        self.sin_cos = sin_cos
+
         utils.EzPickle.__init__(self)
         MujocoEnv.__init__(self,
                            model_path="inverted_pendulum.xml",
@@ -22,19 +26,26 @@ class BaseInvertedPendulumEnv(MujocoEnv, utils.EzPickle):
                            reset_noise_scale=reset_noise_scale, )
 
     def get_batch_obs(self, batch_state):
-        qpos, qvel = batch_state[:, :self.model.nq], batch_state[:, self.model.nq:]
-        batch_obs = np.concatenate([qpos[:, :1], np.sin(qpos[:, 1:]), np.cos(qpos[:, 1:]), qvel], axis=-1)
+        if self.sin_cos:
+            qpos, qvel = batch_state[:, :self.model.nq], batch_state[:, self.model.nq:]
+            batch_obs = np.concatenate([qpos[:, :1], np.sin(qpos[:, 1:]), np.cos(qpos[:, 1:]), qvel], axis=-1)
+        else:
+            batch_obs = batch_state.copy()
         return batch_obs
 
     def get_batch_state(self, batch_obs):
-        theta = np.angle(1j * batch_obs[:, 1] + batch_obs[:, 2])
-        return np.concatenate([batch_obs[:, :1], theta[:, None], batch_obs[:, -2:]], axis=-1)
+        if self.sin_cos:
+            theta = np.angle(1j * batch_obs[:, 1] + batch_obs[:, 2])
+            batch_state = np.concatenate([batch_obs[:, :1], theta[:, None], batch_obs[:, -2:]], axis=-1)
+        else:
+            batch_state = batch_obs.copy()
+        return batch_state
 
     @property
     def causal_graph(self):
         return np.array([[0, 0, 0, 1, 0, 0],  # dot x
-                         [0, 0, 1, 0, 1, 0],  # dot sin theta
-                         [0, 1, 0, 0, 1, 0],  # dot cos theta
+                         [0, 1, 1, 0, 1, 0],  # dot sin theta
+                         [0, 1, 1, 0, 1, 0],  # dot cos theta
                          [0, 1, 1, 0, 1, 1],  # dot v
                          [0, 1, 1, 0, 1, 1],  # dot omega
                          [0, 0, 0, 0, 0, 0]])  # reward
@@ -45,19 +56,25 @@ class ReboundInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
                  freq_rate: int = 1,
                  time_step: float = 0.02,
                  integrator="standard_euler",
+                 # obs
+                 sin_cos: bool = True,
                  # noise
                  reset_noise_scale=0.1):
         BaseInvertedPendulumEnv.__init__(self,
                                          freq_rate=freq_rate,
                                          time_step=time_step,
                                          integrator=integrator,
+                                         sin_cos=sin_cos,
                                          reset_noise_scale=reset_noise_scale)
 
     def get_batch_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
         return np.ones([obs.shape[0], 1])
 
     def get_batch_terminal(self, obs: np.ndarray, pre_obs=None, action=None, state=None, pre_state=None):
-        y = obs[:, 2]
+        if self.sin_cos:
+            y = obs[:, 2]
+        else:
+            y = np.cos(obs[:, 1])
         notdone = (y >= 0.9) & np.isfinite(obs).all(axis=1)
         return np.logical_not(notdone).reshape([obs.shape[0], 1])
 
@@ -67,19 +84,25 @@ class BoundaryInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
                  freq_rate: int = 1,
                  time_step: float = 0.02,
                  integrator="standard_euler",
+                 # obs
+                 sin_cos: bool = True,
                  # noise
                  reset_noise_scale=0.1):
         BaseInvertedPendulumEnv.__init__(self,
                                          freq_rate=freq_rate,
                                          time_step=time_step,
                                          integrator=integrator,
+                                         sin_cos=sin_cos,
                                          reset_noise_scale=reset_noise_scale)
 
     def get_batch_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
         return np.ones([obs.shape[0], 1])
 
     def get_batch_terminal(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        x, y = obs[:, 0], obs[:, 2]
+        if self.sin_cos:
+            x, y = obs[:, 0], obs[:, 2]
+        else:
+            x, y = obs[:, 0], np.cos(obs[:, 1])
         x_left, x_right = self.model.jnt_range[0]
         notdone = (y >= 0.9) \
                   & np.logical_and(x_left < x, x < x_right) \
@@ -92,12 +115,15 @@ class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
                  freq_rate: int = 1,
                  time_step: float = 0.02,
                  integrator="standard_euler",
+                 # obs
+                 sin_cos: bool = True,
                  # noise
                  reset_noise_scale=0.2):
         BaseInvertedPendulumEnv.__init__(self,
                                          freq_rate=freq_rate,
                                          time_step=time_step,
                                          integrator=integrator,
+                                         sin_cos=sin_cos,
                                          reset_noise_scale=reset_noise_scale)
 
     def _update_model(self):
@@ -108,7 +134,10 @@ class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
         self.model.body_quat[2] = [0, 0, 1, 0]
 
     def get_batch_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        y = obs[:, 2]
+        if self.sin_cos:
+            y = obs[:, 2]
+        else:
+            y = np.cos(obs[:, 1])
         rewards = (1 - y) / 2
         return rewards.reshape([obs.shape[0], 1])
 
@@ -128,18 +157,16 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
                  freq_rate: int = 1,
                  time_step: float = 0.02,
                  integrator="standard_euler",
-                 # reward weight
-                 forward_reward_weight=1,
-                 ctrl_cost_weight=0.1,
-                 healthy_reward=1,
+                 # obs
+                 sin_cos: bool = True,
                  # noise
                  reset_noise_scale=0.2):
         BaseInvertedPendulumEnv.__init__(self,
                                          freq_rate=freq_rate,
                                          time_step=time_step,
                                          integrator=integrator,
+                                         sin_cos=sin_cos,
                                          reset_noise_scale=reset_noise_scale)
-
 
     def _update_model(self):
         self.model.stat.extent = 4
@@ -149,7 +176,10 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
         self.model.body_quat[2] = [0, 0, 1, 0]
 
     def get_batch_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        y = obs[:, 2]
+        if self.sin_cos:
+            y = obs[:, 2]
+        else:
+            y = np.cos(obs[:, 1])
         rewards = (1 - y) / 2
         return rewards.reshape([obs.shape[0], 1])
 
@@ -171,8 +201,8 @@ if __name__ == '__main__':
     from emei.util import random_policy_test
     from gym.wrappers import TimeLimit
 
-    env = TimeLimit(ReboundInvertedPendulumSwingUpEnv(), max_episode_steps=1000, new_step_api=True)
-    random_policy_test(env, is_render=True)
+    env = TimeLimit(ReboundInvertedPendulumSwingUpEnv(sin_cos=True), max_episode_steps=1000, new_step_api=True)
+    random_policy_test(env, is_render=False)
 
     # env = ReboundInvertedPendulumSwingUpEnv()
     # b_s = np.random.rand(5, 4)

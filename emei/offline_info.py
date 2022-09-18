@@ -6,7 +6,7 @@ ENV_NAMES = ["BoundaryInvertedPendulumBalancing",
              "HopperRunning", "Walker2dRunning", "HalfCheetahRunning", "AntRunning",
              "HumanoidRunning", "SwimmerRunning"]
 DATASETS = ["uniform", "SAC-random", "SAC-medium", "SAC-expert", "SAC-medium-replay", "SAC-expert-replay"]
-params = ["freq_rate=1&time_step=0.02"]
+params = ["freq_rate=1&time_step=0.02", "freq_rate=2&time_step=0.02", "freq_rate=5&time_step=0.05"]
 
 URL_INFOS = {}
 for env_name in ENV_NAMES:
