@@ -187,11 +187,12 @@ if __name__ == '__main__':
     from emei.util import random_policy_test
     from gym.wrappers import TimeLimit
 
-    # env = TimeLimit(ReboundInvertedPendulumSwingUpEnv(sin_cos=True), max_episode_steps=1000, new_step_api=True)
-    # random_policy_test(env, is_render=False)
+    env = TimeLimit(ReboundInvertedPendulumSwingUpEnv(sin_cos=True), max_episode_steps=1000, new_step_api=True)
+    random_policy_test(env, is_render=False)
 
-    env = ReboundInvertedPendulumSwingUpEnv(sin_cos=True)
-    print(env.get_causal_graph(2))
+    # env = ReboundInvertedPendulumSwingUpEnv(sin_cos=True)
+    # print(env.get_causal_graph(2))
+
     # env = ReboundInvertedPendulumSwingUpEnv()
     # b_s = np.random.rand(5, 4)
     # b_o = env.get_batch_obs(b_s)
