@@ -17,9 +17,13 @@ def run(exp_dir,
     args = load_hydra_cfg(exp_dir, reset_device=device)
 
     agent_class: BaseAlgorithm = eval(args.algorithm.agent._target_)
-    agent = agent_class.load(exp_dir / "{}-{}-agent".format(args.algorithm.name, type))
+    if type == "best":
+        file_name = "best_model"
+    else:
+        file_name = "{}-{}-agent".format(args.algorithm.name, type)
+    agent = agent_class.load(exp_dir / file_name)
 
-    env: emei.EmeiEnv = hydra.utils.instantiate(args.task.env)
+    env: emei.EmeiEnv = hydra.utils.instantiate(args.algorithm.agent.env)
     obs = env.reset(seed=args.seed)
     env.action_space.seed(seed=args.seed)
 

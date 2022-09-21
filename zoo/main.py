@@ -5,6 +5,8 @@ from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.logger import configure
 from zoo.util import rollout, save_as_h5, get_replay_buffer, save_rollout_info
+import wandb
+from omegaconf import OmegaConf
 
 
 def rollout_and_save(env,
@@ -62,9 +64,16 @@ class SaveMediumAndExpertData(BaseCallback):
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(args):
+    run = wandb.init(
+        project='emei',
+        group=args.exp_name,
+        config=OmegaConf.to_container(args, resolve=True),
+        sync_tensorboard=True
+    )
+
     model: BaseAlgorithm = hydra.utils.instantiate(args.algorithm.agent)
 
-    eval_env: emei.EmeiEnv = hydra.utils.instantiate(args.task.env)
+    eval_env: emei.EmeiEnv = hydra.utils.instantiate(args.algorithm.agent.env)
     eval_env.reset(seed=args.seed)
     eval_env.action_space.seed(seed=args.seed)
 
@@ -78,7 +87,8 @@ def main(args):
                                  best_model_save_path="./",
                                  callback_on_new_best=save_offline_callback,
                                  log_path="./",
-                                 eval_freq=1000,
+                                 n_eval_episodes=args.task.n_eval_episodes,
+                                 eval_freq=args.task.eval_freq,
                                  deterministic=False,
                                  render=False)
 

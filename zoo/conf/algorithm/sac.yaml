@@ -3,7 +3,12 @@ name: SAC
 agent:
   _target_: stable_baselines3.sac.SAC
   policy: "MlpPolicy"
-  env: ${task.env}
+  env:
+    _target_: gym.make
+    id: ${task.name}
+    freq_rate: ${task.freq_rate}
+    time_step: ${task.time_step}
+    new_step_api: false
   learning_starts: 100
   batch_size: 256
   tau: 0.005

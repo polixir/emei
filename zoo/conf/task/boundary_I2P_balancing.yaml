@@ -1,17 +1,23 @@
 name: "BoundaryInvertedDoublePendulumBalancing-v0"
-params: "freq_rate=${task.freq_rate}&time_step=${task.time_step}"
-freq_rate: 4
+freq_rate: 1
 time_step: 0.02
 
+params: "freq_rate=${task.freq_rate}&time_step=${task.time_step}"
+
 # sac
-start_steps: 5000
-eval_freq: 10
+sac_ent_coef: 0.5
+start_steps: 1000
+
+# eval
+n_eval_episodes: 10
+eval_freq: 1000
 
 # num steps
 num_steps: 3000000
 
-medium_reward: 800
+medium_reward: 400
 expert_reward: 950
-random_sample_num: 200000
-medium_sample_num: 200000
-expert_sample_num: 200000
+uniform_sample_num: 100000
+random_sample_num: 100000
+medium_sample_num: 100000
+expert_sample_num: 100000
