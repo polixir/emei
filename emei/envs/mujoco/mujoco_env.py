@@ -9,8 +9,6 @@ from typing import Optional
 from scipy.spatial.transform import Rotation
 
 from gym import spaces
-from gym.utils.renderer import Renderer
-from gym.envs.mujoco.mujoco_env import BaseMujocoEnv
 
 DEFAULT_SIZE = 480
 
