@@ -18,4 +18,3 @@ agent:
   verbose: 0
   seed: ${seed}
   device: ${device}
-

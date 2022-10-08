@@ -10,9 +10,7 @@ from stable_baselines3.common.base_class import BaseAlgorithm
 from zoo.util import load_hydra_cfg
 
 
-def run(exp_dir,
-        type="expert",
-        device="cuda:0"):
+def run(exp_dir, type="expert", device="cuda:0"):
     exp_dir = pathlib.Path(exp_dir)
     args = load_hydra_cfg(exp_dir, reset_device=device)
 
@@ -46,7 +44,7 @@ def run(exp_dir,
             obs = next_obs
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("exp_dir", type=str)
     parser.add_argument("--type", type=str, default="expert")

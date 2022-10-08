@@ -11,9 +11,7 @@ from emei import EmeiEnv
 class BaseControlEnv(EmeiEnv):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
 
-    def __init__(self,
-                 freq_rate: int = 1,
-                 time_step: float = 0.02) -> None:
+    def __init__(self, freq_rate: int = 1, time_step: float = 0.02) -> None:
         EmeiEnv.__init__(self)
         self.freq_rate = freq_rate
         self.time_step = time_step
@@ -63,11 +61,11 @@ class BaseControlEnv(EmeiEnv):
         return obs, self.get_reward(obs), self.get_terminal(obs), {}
 
     def reset(
-            self,
-            *,
-            seed: Optional[int] = None,
-            return_info: bool = False,
-            options: Optional[dict] = None,
+        self,
+        *,
+        seed: Optional[int] = None,
+        return_info: bool = False,
+        options: Optional[dict] = None,
     ):
         super().reset(seed=seed)
         self.state = self._get_initial_state()
@@ -86,7 +84,9 @@ class BaseControlEnv(EmeiEnv):
         if self.screen is None:
             pygame.init()
             pygame.display.init()
-            self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+            self.screen = pygame.display.set_mode(
+                (self.screen_width, self.screen_height)
+            )
         if self.clock is None:
             self.clock = pygame.time.Clock()
 

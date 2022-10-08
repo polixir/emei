@@ -22,5 +22,4 @@ setup(
     extras_require={
         "dev": reqs_main + reqs_dev,
     },
-
 )

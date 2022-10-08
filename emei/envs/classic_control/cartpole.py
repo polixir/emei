@@ -14,11 +14,8 @@ from emei.envs.classic_control.base_control import BaseControlEnv
 
 
 class BaseCartPoleEnv(BaseControlEnv):
-    def __init__(self,
-                 freq_rate=1,
-                 time_step=0.02):
-        super(BaseCartPoleEnv, self).__init__(freq_rate=freq_rate,
-                                              time_step=time_step)
+    def __init__(self, freq_rate=1, time_step=0.02):
+        super(BaseCartPoleEnv, self).__init__(freq_rate=freq_rate, time_step=time_step)
         self.gravity = 9.8
         self.mass_cart = 1.0
         self.mass_pole = 0.1
@@ -32,7 +29,9 @@ class BaseCartPoleEnv(BaseControlEnv):
         self.x_threshold = 2.4
 
         state_high = np.full(4, np.inf, dtype=self.numpy_dtype)
-        self.observation_space = spaces.Box(-state_high, state_high, dtype=self.numpy_dtype)
+        self.observation_space = spaces.Box(
+            -state_high, state_high, dtype=self.numpy_dtype
+        )
 
     def _get_update_info(self, force):
         x, x_dot, theta, theta_dot = self.state
@@ -40,9 +39,11 @@ class BaseCartPoleEnv(BaseControlEnv):
         pole_mass_length = self.mass_pole * self.length
         cos_theta = math.cos(theta)
         sin_theta = math.sin(theta)
-        temp = (force + pole_mass_length * theta_dot ** 2 * sin_theta) / self.total_mass
+        temp = (force + pole_mass_length * theta_dot**2 * sin_theta) / self.total_mass
         theta_acc = (self.gravity * sin_theta - cos_theta * temp) / (
-                self.length * (4.0 / 3.0 - self.mass_pole * cos_theta ** 2 / self.total_mass))
+            self.length
+            * (4.0 / 3.0 - self.mass_pole * cos_theta**2 / self.total_mass)
+        )
         x_acc = temp - pole_mass_length * theta_acc * cos_theta / self.total_mass
 
         return np.array([x_dot, x_acc, theta_dot, theta_acc], dtype=self.numpy_dtype)
@@ -102,14 +103,18 @@ class BaseCartPoleEnv(BaseControlEnv):
 
 class CartPoleHoldingEnv(BaseCartPoleEnv):
     def __init__(self, freq_rate=1, time_step=0.02):
-        super(CartPoleHoldingEnv, self).__init__(freq_rate=freq_rate, time_step=time_step)
+        super(CartPoleHoldingEnv, self).__init__(
+            freq_rate=freq_rate, time_step=time_step
+        )
         self.action_space = spaces.Discrete(2)
 
     def _extract_action(self, action):
         return self.force_mag if action == 1 else -self.force_mag
 
     def get_batch_terminal(self, next_obs):
-        notdone = (np.abs(next_obs[:, 2]) < self.theta_threshold_radians) & (np.abs(next_obs[:, 0]) < self.x_threshold)
+        notdone = (np.abs(next_obs[:, 2]) < self.theta_threshold_radians) & (
+            np.abs(next_obs[:, 0]) < self.x_threshold
+        )
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
     def get_batch_reward(self, next_obs):
@@ -121,7 +126,9 @@ class CartPoleHoldingEnv(BaseCartPoleEnv):
 
 class CartPoleSwingUpEnv(BaseCartPoleEnv):
     def __init__(self, freq_rate=1, time_step=0.02):
-        super(CartPoleSwingUpEnv, self).__init__(freq_rate=freq_rate, time_step=time_step)
+        super(CartPoleSwingUpEnv, self).__init__(
+            freq_rate=freq_rate, time_step=time_step
+        )
         self.x_threshold = 5
         self.action_space = spaces.Discrete(2)
 
@@ -129,7 +136,7 @@ class CartPoleSwingUpEnv(BaseCartPoleEnv):
         return self.force_mag if action == 1 else -self.force_mag
 
     def get_batch_terminal(self, next_obs):
-        notdone = (np.abs(next_obs[:, 0]) < self.x_threshold)
+        notdone = np.abs(next_obs[:, 0]) < self.x_threshold
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
     def get_batch_reward(self, next_obs):
@@ -137,13 +144,20 @@ class CartPoleSwingUpEnv(BaseCartPoleEnv):
         return rewards.reshape([next_obs.shape[0], 1])
 
     def _get_initial_state(self):
-        init_state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,)) + [0, 0, np.pi, 0]
+        init_state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,)) + [
+            0,
+            0,
+            np.pi,
+            0,
+        ]
         return init_state
 
 
 class ContinuousCartPoleHoldingEnv(BaseCartPoleEnv):
     def __init__(self, freq_rate=1, time_step=0.02):
-        super(ContinuousCartPoleHoldingEnv, self).__init__(freq_rate=freq_rate, time_step=time_step)
+        super(ContinuousCartPoleHoldingEnv, self).__init__(
+            freq_rate=freq_rate, time_step=time_step
+        )
         action_high = np.ones(1, dtype=np.float32)
         self.action_space = spaces.Box(-action_high, action_high, dtype=np.float32)
 
@@ -151,7 +165,9 @@ class ContinuousCartPoleHoldingEnv(BaseCartPoleEnv):
         return self.force_mag * action[0]
 
     def get_batch_terminal(self, next_obs):
-        notdone = (np.abs(next_obs[:, 2]) < self.theta_threshold_radians) & (np.abs(next_obs[:, 0]) < self.x_threshold)
+        notdone = (np.abs(next_obs[:, 2]) < self.theta_threshold_radians) & (
+            np.abs(next_obs[:, 0]) < self.x_threshold
+        )
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
     def get_batch_reward(self, next_obs):
@@ -163,7 +179,9 @@ class ContinuousCartPoleHoldingEnv(BaseCartPoleEnv):
 
 class ContinuousCartPoleSwingUpEnv(BaseCartPoleEnv):
     def __init__(self, freq_rate=1, time_step=0.02):
-        super(ContinuousCartPoleSwingUpEnv, self).__init__(freq_rate=freq_rate, time_step=time_step)
+        super(ContinuousCartPoleSwingUpEnv, self).__init__(
+            freq_rate=freq_rate, time_step=time_step
+        )
         self.x_threshold = 5
         action_high = np.ones(1, dtype=np.float32)
         self.action_space = spaces.Box(-action_high, action_high, dtype=np.float32)
@@ -172,7 +190,7 @@ class ContinuousCartPoleSwingUpEnv(BaseCartPoleEnv):
         return self.force_mag * action[0]
 
     def get_batch_terminal(self, next_obs):
-        notdone = (np.abs(next_obs[:, 0]) < self.x_threshold)
+        notdone = np.abs(next_obs[:, 0]) < self.x_threshold
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
     def get_batch_reward(self, next_obs):
@@ -180,11 +198,16 @@ class ContinuousCartPoleSwingUpEnv(BaseCartPoleEnv):
         return rewards.reshape([next_obs.shape[0], 1])
 
     def _get_initial_state(self):
-        init_state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,)) + [0, 0, np.pi, 0]
+        init_state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,)) + [
+            0,
+            0,
+            np.pi,
+            0,
+        ]
         return init_state
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from emei.util import random_policy_test
 
     env = ContinuousCartPoleSwingUpEnv()

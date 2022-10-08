@@ -69,7 +69,7 @@ class OfflineEnv(gym.Env):
                 keys.append(name)
 
         data_dict = {}
-        with h5py.File(h5path, 'r') as f:
+        with h5py.File(h5path, "r") as f:
             f.visititems(visitor)
             for k in tqdm(keys, desc="load datafile"):
                 try:  # first try loading as an array
@@ -85,7 +85,7 @@ class OfflineEnv(gym.Env):
         :param dataset_url: web url.
         :return: local file path.
         """
-        env_name, param, dataset_name = dataset_url.split('/')[-3:]
+        env_name, param, dataset_name = dataset_url.split("/")[-3:]
         dataset_dir = DATASET_PATH / env_name / param
         dataset_dir.mkdir(parents=True, exist_ok=True)
         return dataset_dir / dataset_name
@@ -98,7 +98,7 @@ class OfflineEnv(gym.Env):
         """
         dataset_filepath = self.get_path_from_url(dataset_url)
         if not dataset_filepath.exists():
-            print('Downloading dataset:', dataset_url, 'to', dataset_filepath)
+            print("Downloading dataset:", dataset_url, "to", dataset_filepath)
             urllib.request.urlretrieve(dataset_url, dataset_filepath)
         if not dataset_filepath.exists():
             raise IOError("Failed to download dataset from %s" % dataset_url)
@@ -108,27 +108,34 @@ class OfflineEnv(gym.Env):
         assert dataset_name in self._offline_dataset_names
 
         joint_pos = dataset_name.find("-")
-        param, dataset_type = dataset_name[:joint_pos], dataset_name[joint_pos + 1:]
+        param, dataset_type = dataset_name[:joint_pos], dataset_name[joint_pos + 1 :]
         url = self.data_url[param][dataset_type]
         h5path = self.download_dataset(url)
 
         data_dict = self.load_h5_data(h5path)
 
         # Run a few quick sanity checks
-        for key in ['observations', 'observations', 'actions', 'rewards', 'terminals', "timeouts"]:
-            assert key in data_dict, 'Dataset is missing key %s' % key
+        for key in [
+            "observations",
+            "observations",
+            "actions",
+            "rewards",
+            "terminals",
+            "timeouts",
+        ]:
+            assert key in data_dict, "Dataset is missing key %s" % key
 
         return data_dict
 
     def get_sequence_dataset(self, dataset_name: str) -> Dict[(str, np.ndarray)]:
         dataset = self.get_dataset(dataset_name)
-        N = dataset['rewards'].shape[0]
+        N = dataset["rewards"].shape[0]
         data = defaultdict(lambda: defaultdict(list))
 
         sequence_num = 0
         for i in range(N):
-            done_bool = bool(dataset['terminals'][i])
-            final_timestep = dataset['timeouts'][i]
+            done_bool = bool(dataset["terminals"][i])
+            final_timestep = dataset["timeouts"][i]
 
             for k in dataset:
                 data[sequence_num][k].append(dataset[k][i])
@@ -149,7 +156,10 @@ class EmeiEnv(Freezable, OfflineEnv):
 
     def get_causal_graph(self, repeat_times=1):
         g = self._causal_graph.copy()
-        num_obs, num_action = self.observation_space.shape[0], self.action_space.shape[0]
+        num_obs, num_action = (
+            self.observation_space.shape[0],
+            self.action_space.shape[0],
+        )
         assert g.shape == (num_obs + num_action, num_obs)
         if repeat_times == 1:
             return g
@@ -182,19 +192,29 @@ class EmeiEnv(Freezable, OfflineEnv):
             assert len(action.shape) == 1
             return self.single_query(obs, action)
         else:
-            next_obs_list, reward_list, terminal_list, truncated_list, info_list = [], [], [], [], []
+            next_obs_list, reward_list, terminal_list, truncated_list, info_list = (
+                [],
+                [],
+                [],
+                [],
+                [],
+            )
             for i in range(obs.shape[0]):
-                next_obs, reward, terminal, truncated, info = self.single_query(obs[i], action[i])
+                next_obs, reward, terminal, truncated, info = self.single_query(
+                    obs[i], action[i]
+                )
                 next_obs_list.append(next_obs)
                 reward_list.append(reward)
                 terminal_list.append(terminal)
                 truncated_list.append(truncated)
                 info_list.append(info)
-            return np.array(next_obs_list), \
-                   np.array(reward_list), \
-                   np.array(terminal_list), \
-                   np.array(truncated_list), \
-                   np.array(info_list)
+            return (
+                np.array(next_obs_list),
+                np.array(reward_list),
+                np.array(terminal_list),
+                np.array(truncated_list),
+                np.array(info_list),
+            )
 
     @staticmethod
     def extend_dim(variable):
@@ -217,7 +237,9 @@ class EmeiEnv(Freezable, OfflineEnv):
         args.remove("self")
         kwargs = dict(filter(lambda x: x[0] in args, values.items()))
         if len(obs.shape) == 1:  # single obs
-            kwargs = dict([(arg, self.extend_dim(value)) for arg, value in kwargs.items()])
+            kwargs = dict(
+                [(arg, self.extend_dim(value)) for arg, value in kwargs.items()]
+            )
             return float(self.get_batch_reward(**kwargs)[0, 0])
         else:
             return self.get_batch_reward(**kwargs)
@@ -228,7 +250,9 @@ class EmeiEnv(Freezable, OfflineEnv):
         args.remove("self")
         kwargs = dict(filter(lambda x: x[0] in args, values.items()))
         if len(obs.shape) == 1:  # single obs
-            kwargs = dict([(arg, self.extend_dim(value)) for arg, value in kwargs.items()])
+            kwargs = dict(
+                [(arg, self.extend_dim(value)) for arg, value in kwargs.items()]
+            )
             return bool(self.get_batch_terminal(**kwargs)[0, 0])
         else:
             return self.get_batch_terminal(**kwargs)
@@ -260,11 +284,15 @@ class EmeiEnv(Freezable, OfflineEnv):
         pass
 
     @abstractmethod
-    def get_batch_reward(self, next_obs, pre_obs=None, action=None, state=None, pre_state=None):
+    def get_batch_reward(
+        self, next_obs, pre_obs=None, action=None, state=None, pre_state=None
+    ):
         pass
 
     @abstractmethod
-    def get_batch_terminal(self, next_obs, pre_obs=None, action=None, state=None, pre_state=None):
+    def get_batch_terminal(
+        self, next_obs, pre_obs=None, action=None, state=None, pre_state=None
+    ):
         pass
 
     @abstractmethod
