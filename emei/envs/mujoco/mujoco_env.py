@@ -182,7 +182,6 @@ class MujocoEnv(EmeiEnv):
         self,
         *,
         seed: Optional[int] = None,
-        return_info: bool = False,
         options: Optional[dict] = None,
     ):
         super().reset(seed=seed)
@@ -191,10 +190,7 @@ class MujocoEnv(EmeiEnv):
         init_state = self.get_batch_init_state(1)[0]
         self.set_state(init_state)
 
-        if not return_info:
-            return self.get_obs(init_state)
-        else:
-            return self.get_obs(init_state), {}
+        return self.get_obs(init_state), {}
 
     def render(
         self,
