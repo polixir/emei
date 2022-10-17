@@ -1,0 +1,22 @@
+{
+    "SAC-random": {
+        "avg_reward": 7.529370248583082,
+        "avg_length": 171.28082191780823,
+        "total_episode_num": 584
+    },
+    "uniform": {
+        "avg_reward": 5.451514616892834,
+        "avg_length": 132.80106100795757,
+        "total_episode_num": 754
+    },
+    "SAC-medium": {
+        "avg_reward": 411.12585758068775,
+        "avg_length": 986.5098039215686,
+        "total_episode_num": 102
+    },
+    "SAC-expert": {
+        "avg_reward": 913.0934372041514,
+        "avg_length": 1000.0,
+        "total_episode_num": 100
+    }
+}
