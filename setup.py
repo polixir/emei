@@ -11,6 +11,11 @@ reqs_dev = parse_requirements_file("requirements/dev.txt")
 setup(
     name="emei",
     packages=[package for package in find_packages() if package.startswith("emei")],
+    package_data={
+        "emei": [
+            "envs/mujoco/assets/*.xml",
+        ]
+    },
     description="Emei is a toolkit for developing causal reinforcement learning algorithms.",
     author="Honglong Tian",
     url="https://github.com/FrankTianTT/emei",
