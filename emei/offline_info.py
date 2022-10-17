@@ -1,4 +1,5 @@
-ROOT_PATH = r"http://114.212.20.185/emei/offline_data"
+ROOT_PATH = r"https://github.com/FrankTianTT/emei/raw/dev/offline_data"
+
 ENV_NAMES = [
     "BoundaryInvertedPendulumBalancing",
     "BoundaryInvertedPendulumSwingUp",
@@ -32,5 +33,8 @@ for env_name in ENV_NAMES:
         URL_INFOS[env_name][param] = {}
         for dataset in DATASETS:
             URL_INFOS[env_name][param][dataset] = "{}/{}-v0/{}/{}.h5".format(
-                ROOT_PATH, env_name, param, dataset
+                ROOT_PATH,
+                env_name,
+                param.replace("=", "%3D").replace("&", "%26"),
+                dataset,
             )

@@ -86,7 +86,9 @@ class OfflineEnv(gym.Env):
         :return: local file path.
         """
         env_name, param, dataset_name = dataset_url.split("/")[-3:]
-        dataset_dir = DATASET_PATH / env_name / param
+        dataset_dir = (
+            DATASET_PATH / env_name / param.replace("%3D", "=").replace("%26", "&")
+        )
         dataset_dir.mkdir(parents=True, exist_ok=True)
         return dataset_dir / dataset_name
 

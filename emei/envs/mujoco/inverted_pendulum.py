@@ -251,14 +251,15 @@ if __name__ == "__main__":
     from emei.util import random_policy_test
     from gym.wrappers import TimeLimit
 
-    env = TimeLimit(
-        BoundaryInvertedPendulumBalancingEnv(),
-        max_episode_steps=1000,
-        new_step_api=True,
-    )
-    random_policy_test(env, is_render=True)
+    # env = TimeLimit(
+    #     BoundaryInvertedPendulumBalancingEnv(),
+    #     max_episode_steps=1000,
+    #     new_step_api=True,
+    # )
+    # random_policy_test(env, is_render=True)
 
-    # env = ReboundInvertedPendulumSwingUpEnv(sin_cos=True)
+    env = BoundaryInvertedPendulumSwingUpEnv(sin_cos=True)
+    env.get_dataset("freq_rate=1&time_step=0.02-uniform")
     # print(env.get_causal_graph(2))
 
     # env = ReboundInvertedPendulumSwingUpEnv()
