@@ -1,1 +1,1 @@
-from . import register_env
+from emei.envs import register_env
