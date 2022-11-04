@@ -9,8 +9,6 @@ from typing import Optional
 from scipy.spatial.transform import Rotation
 
 from gym import spaces
-from gym.utils.renderer import Renderer
-from gym.envs.mujoco.mujoco_env import BaseMujocoEnv
 
 DEFAULT_SIZE = 480
 
@@ -49,6 +47,7 @@ def free_joint_forward_euler(pos, del_pos):
 
 class MujocoEnv(EmeiEnv):
     """Superclass for all MuJoCo environments."""
+
     metadata = {
         "render_modes": [
             "human",
@@ -60,15 +59,16 @@ class MujocoEnv(EmeiEnv):
         "render_fps": 125,
     }
 
-    def __init__(self,
-                 model_path,
-                 freq_rate: int = 1,
-                 time_step: float = 0.02,
-                 integrator="standard_euler",
-                 camera_config: Optional[dict] = None,
-                 reset_noise_scale: float = 0,
-                 ):
-        EmeiEnv.__init__(self)
+    def __init__(
+            self,
+            model_path,
+            freq_rate: int = 1,
+            time_step: float = 0.02,
+            integrator="standard_euler",
+            camera_config: Optional[dict] = None,
+            reset_noise_scale: float = 0,
+    ):
+        EmeiEnv.__init__(self, env_params="freq_rate={}&time_step={}".format(freq_rate, time_step))
         # load model from path
         if model_path.startswith("/"):
             fullpath = model_path
@@ -129,13 +129,15 @@ class MujocoEnv(EmeiEnv):
 
     def get_current_state(self, copy: bool = True):
         if copy:
-            return np.concatenate([self.data.qpos.copy(), self.data.qvel.copy()]).ravel()
+            return np.concatenate(
+                [self.data.qpos.copy(), self.data.qvel.copy()]
+            ).ravel()
         else:
             return np.concatenate([self.data.qpos, self.data.qvel]).ravel()
 
     def set_state(self, state):
         assert len(state.shape) == 1, state.shape[0] == self.model.nq + self.model.nv
-        qpos, qvel = state[:self.model.nq], state[self.model.nq:]
+        qpos, qvel = state[: self.model.nq], state[self.model.nq:]
         self.data.qpos[:] = np.copy(qpos)
         self.data.qvel[:] = np.copy(qvel)
         if self.model.na == 0:
@@ -143,8 +145,16 @@ class MujocoEnv(EmeiEnv):
         mujoco.mj_forward(self.model, self.data)
 
     def get_batch_init_state(self, batch_size):
-        qpos = self.init_qpos + self._reset_noise_scale * self.np_random.standard_normal((batch_size, self.model.nq))
-        qvel = self.init_qvel + self._reset_noise_scale * self.np_random.standard_normal((batch_size, self.model.nv))
+        qpos = (
+                self.init_qpos
+                + self._reset_noise_scale
+                * self.np_random.standard_normal((batch_size, self.model.nq))
+        )
+        qvel = (
+                self.init_qvel
+                + self._reset_noise_scale
+                * self.np_random.standard_normal((batch_size, self.model.nv))
+        )
         batch_state = np.concatenate([qpos, qvel], axis=-1)
         return batch_state
 
@@ -161,7 +171,9 @@ class MujocoEnv(EmeiEnv):
         obs = self.get_obs(state)
 
         reward = self.get_reward(obs, pre_obs, action, state=state, pre_state=pre_state)
-        terminal = self.get_terminal(obs, pre_obs, action, state=state, pre_state=pre_state)
+        terminal = self.get_terminal(
+            obs, pre_obs, action, state=state, pre_state=pre_state
+        )
         truncated = False
         info = self._get_info()
         return obs, reward, terminal, truncated, info
@@ -179,10 +191,10 @@ class MujocoEnv(EmeiEnv):
         init_state = self.get_batch_init_state(1)[0]
         self.set_state(init_state)
 
-        if not return_info:
-            return self.get_obs(init_state)
-        else:
+        if return_info:
             return self.get_obs(init_state), {}
+        else:
+            return self.get_obs(init_state)
 
     def render(
             self,
@@ -291,16 +303,22 @@ class MujocoEnv(EmeiEnv):
         for jnt_id, jnt_type in enumerate(self.model.jnt_type):
             if jnt_type == 0:
                 pos_len, vel_len = 7, 6
-                new_qpos[cur_pos_idx: cur_pos_idx + pos_len] = \
-                    free_joint_forward_euler(old_qpos[cur_pos_idx: cur_pos_idx + pos_len],
-                                             old_qvel[cur_vel_idx: cur_vel_idx + vel_len] * self.model.opt.timestep)
+                new_qpos[
+                cur_pos_idx: cur_pos_idx + pos_len
+                ] = free_joint_forward_euler(
+                    old_qpos[cur_pos_idx: cur_pos_idx + pos_len],
+                    old_qvel[cur_vel_idx: cur_vel_idx + vel_len]
+                    * self.model.opt.timestep,
+                )
             elif jnt_type == 1:
                 raise NotImplementedError
             else:
                 pos_len, vel_len = 1, 1
-                new_qpos[cur_pos_idx: cur_pos_idx + pos_len] = \
-                    old_qpos[cur_pos_idx: cur_pos_idx + pos_len] + \
-                    old_qvel[cur_vel_idx: cur_vel_idx + vel_len] * self.model.opt.timestep
+                new_qpos[cur_pos_idx: cur_pos_idx + pos_len] = (
+                        old_qpos[cur_pos_idx: cur_pos_idx + pos_len]
+                        + old_qvel[cur_vel_idx: cur_vel_idx + vel_len]
+                        * self.model.opt.timestep
+                )
 
             cur_pos_idx += pos_len
             cur_vel_idx += vel_len

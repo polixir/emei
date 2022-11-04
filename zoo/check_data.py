@@ -18,7 +18,7 @@ def get_keys(h5file):
 
 def load_dataset(data_path):
     data_dict = {}
-    with h5py.File(data_path, 'r') as dataset_file:
+    with h5py.File(data_path, "r") as dataset_file:
         for k in tqdm(get_keys(dataset_file), desc="load datafile"):
             try:  # first try loading as an array
                 data_dict[k] = dataset_file[k][:]
@@ -26,8 +26,15 @@ def load_dataset(data_path):
                 data_dict[k] = dataset_file[k][()]
 
     # Run a few quick sanity checks
-    for key in ['observations', 'observations', 'actions', 'rewards', 'terminals', "timeouts"]:
-        assert key in data_dict, 'Dataset is missing key %s' % key
+    for key in [
+        "observations",
+        "observations",
+        "actions",
+        "rewards",
+        "terminals",
+        "timeouts",
+    ]:
+        assert key in data_dict, "Dataset is missing key %s" % key
 
     return data_dict
 
@@ -49,7 +56,7 @@ def show_obs_rew(data_dict):
     plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("data_path", type=str, default=None)
     args = parser.parse_args()

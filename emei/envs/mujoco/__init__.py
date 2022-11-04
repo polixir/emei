@@ -1,9 +1,15 @@
-from emei.envs.mujoco.inverted_pendulum import ReboundInvertedPendulumSwingUpEnv, ReboundInvertedPendulumBalancingEnv, \
-    BoundaryInvertedPendulumSwingUpEnv, BoundaryInvertedPendulumBalancingEnv
-from emei.envs.mujoco.inverted_double_pendulum import ReboundInvertedDoublePendulumSwingUpEnv, \
-    ReboundInvertedDoublePendulumBalancingEnv, \
-    BoundaryInvertedDoublePendulumSwingUpEnv, \
-    BoundaryInvertedDoublePendulumBalancingEnv
+from emei.envs.mujoco.inverted_pendulum import (
+    ReboundInvertedPendulumSwingUpEnv,
+    ReboundInvertedPendulumBalancingEnv,
+    BoundaryInvertedPendulumSwingUpEnv,
+    BoundaryInvertedPendulumBalancingEnv,
+)
+from emei.envs.mujoco.inverted_double_pendulum import (
+    ReboundInvertedDoublePendulumSwingUpEnv,
+    ReboundInvertedDoublePendulumBalancingEnv,
+    BoundaryInvertedDoublePendulumSwingUpEnv,
+    BoundaryInvertedDoublePendulumBalancingEnv,
+)
 from emei.envs.mujoco.hopper import HopperRunningEnv
 from emei.envs.mujoco.walker2d import Walker2dRunningEnv
 from emei.envs.mujoco.ant import AntRunningEnv

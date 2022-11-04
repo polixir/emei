@@ -1,6 +1,7 @@
 import time
 import math
 
+
 def random_policy_test(env, is_render=False, sleep=None, default_action=None):
     def render():
         if is_render:
@@ -21,7 +22,11 @@ def random_policy_test(env, is_render=False, sleep=None, default_action=None):
         if terminal or truncated:
             obs = env.reset()
             render()
-            print("episode length: {}\tepisode rewards: {}".format(episode_len, episode_rewards))
+            print(
+                "episode length: {}\tepisode rewards: {}".format(
+                    episode_len, episode_rewards
+                )
+            )
             episode_len = 0
             episode_rewards = 0
         else:
