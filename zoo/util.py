@@ -23,7 +23,7 @@ def get_replay_buffer(model):
         "next_observations": replay_buffer.next_observations[:pos].reshape(pos, -1),
         "actions": unscale_action(replay_buffer.actions[:pos].reshape(pos, -1)),
         "rewards": replay_buffer.rewards[:pos].reshape(pos),
-        "terminals": replay_buffer.dones[:pos].reshape(pos),
+        "dones": replay_buffer.dones[:pos].reshape(pos),
         "timeouts": replay_buffer.timeouts[:pos].reshape(pos),
     }
 
@@ -58,13 +58,13 @@ def rollout(
                     action = env.action_space.sample()
                 next_obs, reward, done, info = env.step(action)
                 timeout = "TimeLimit.truncated" in info
-                terminal = done and not timeout
+                # terminal = done and not timeout
 
                 samples["observations"].append(obs)
                 samples["next_observations"].append(next_obs)
                 samples["actions"].append(action)
                 samples["rewards"].append(reward)
-                samples["terminals"].append(float(terminal))
+                samples["dones"].append(float(done))
                 samples["timeouts"].append(float(timeout))
 
                 episode_reward += reward

@@ -60,13 +60,13 @@ class MujocoEnv(EmeiEnv):
     }
 
     def __init__(
-        self,
-        model_path,
-        freq_rate: int = 1,
-        time_step: float = 0.02,
-        integrator="standard_euler",
-        camera_config: Optional[dict] = None,
-        reset_noise_scale: float = 0,
+            self,
+            model_path,
+            freq_rate: int = 1,
+            time_step: float = 0.02,
+            integrator="standard_euler",
+            camera_config: Optional[dict] = None,
+            reset_noise_scale: float = 0,
     ):
         EmeiEnv.__init__(self, env_params="freq_rate={}&time_step={}".format(freq_rate, time_step))
         # load model from path
@@ -137,7 +137,7 @@ class MujocoEnv(EmeiEnv):
 
     def set_state(self, state):
         assert len(state.shape) == 1, state.shape[0] == self.model.nq + self.model.nv
-        qpos, qvel = state[: self.model.nq], state[self.model.nq :]
+        qpos, qvel = state[: self.model.nq], state[self.model.nq:]
         self.data.qpos[:] = np.copy(qpos)
         self.data.qvel[:] = np.copy(qvel)
         if self.model.na == 0:
@@ -146,14 +146,14 @@ class MujocoEnv(EmeiEnv):
 
     def get_batch_init_state(self, batch_size):
         qpos = (
-            self.init_qpos
-            + self._reset_noise_scale
-            * self.np_random.standard_normal((batch_size, self.model.nq))
+                self.init_qpos
+                + self._reset_noise_scale
+                * self.np_random.standard_normal((batch_size, self.model.nq))
         )
         qvel = (
-            self.init_qvel
-            + self._reset_noise_scale
-            * self.np_random.standard_normal((batch_size, self.model.nv))
+                self.init_qvel
+                + self._reset_noise_scale
+                * self.np_random.standard_normal((batch_size, self.model.nv))
         )
         batch_state = np.concatenate([qpos, qvel], axis=-1)
         return batch_state
@@ -179,10 +179,11 @@ class MujocoEnv(EmeiEnv):
         return obs, reward, terminal, truncated, info
 
     def reset(
-        self,
-        *,
-        seed: Optional[int] = None,
-        options: Optional[dict] = None,
+            self,
+            *,
+            seed: Optional[int] = None,
+            return_info: bool = False,
+            options: Optional[dict] = None,
     ):
         super().reset(seed=seed)
         mujoco.mj_resetData(self.model, self.data)
@@ -190,15 +191,18 @@ class MujocoEnv(EmeiEnv):
         init_state = self.get_batch_init_state(1)[0]
         self.set_state(init_state)
 
-        return self.get_obs(init_state), {}
+        if return_info:
+            return self.get_obs(init_state), {}
+        else:
+            return self.get_obs(init_state)
 
     def render(
-        self,
-        mode: str = "human",
-        width: int = DEFAULT_SIZE,
-        height: int = DEFAULT_SIZE,
-        camera_id: Optional[int] = None,
-        camera_name: Optional[str] = None,
+            self,
+            mode: str = "human",
+            width: int = DEFAULT_SIZE,
+            height: int = DEFAULT_SIZE,
+            camera_id: Optional[int] = None,
+            camera_name: Optional[str] = None,
     ):
         assert mode in self.metadata["render_modes"]
 
@@ -300,20 +304,20 @@ class MujocoEnv(EmeiEnv):
             if jnt_type == 0:
                 pos_len, vel_len = 7, 6
                 new_qpos[
-                    cur_pos_idx : cur_pos_idx + pos_len
+                cur_pos_idx: cur_pos_idx + pos_len
                 ] = free_joint_forward_euler(
-                    old_qpos[cur_pos_idx : cur_pos_idx + pos_len],
-                    old_qvel[cur_vel_idx : cur_vel_idx + vel_len]
+                    old_qpos[cur_pos_idx: cur_pos_idx + pos_len],
+                    old_qvel[cur_vel_idx: cur_vel_idx + vel_len]
                     * self.model.opt.timestep,
                 )
             elif jnt_type == 1:
                 raise NotImplementedError
             else:
                 pos_len, vel_len = 1, 1
-                new_qpos[cur_pos_idx : cur_pos_idx + pos_len] = (
-                    old_qpos[cur_pos_idx : cur_pos_idx + pos_len]
-                    + old_qvel[cur_vel_idx : cur_vel_idx + vel_len]
-                    * self.model.opt.timestep
+                new_qpos[cur_pos_idx: cur_pos_idx + pos_len] = (
+                        old_qpos[cur_pos_idx: cur_pos_idx + pos_len]
+                        + old_qvel[cur_vel_idx: cur_vel_idx + vel_len]
+                        * self.model.opt.timestep
                 )
 
             cur_pos_idx += pos_len

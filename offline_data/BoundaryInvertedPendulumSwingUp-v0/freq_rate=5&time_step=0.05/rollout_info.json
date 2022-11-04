@@ -1,22 +1,22 @@
 {
     "SAC-random": {
-        "avg_reward": 4.314318338725729,
-        "avg_length": 46.495583449558346,
-        "total_episode_num": 2151
+        "avg_reward": 10.40018354708305,
+        "avg_length": 44.46888888888889,
+        "total_episode_num": 450
     },
     "uniform": {
-        "avg_reward": 3.412689525923819,
-        "avg_length": 39.905826017557864,
-        "total_episode_num": 2506
+        "avg_reward": 8.77133065585129,
+        "avg_length": 39.61857707509881,
+        "total_episode_num": 506
     },
     "SAC-medium": {
-        "avg_reward": 463.22343839074716,
-        "avg_length": 682.0204081632653,
-        "total_episode_num": 147
+        "avg_reward": 536.967113072433,
+        "avg_length": 997.7142857142857,
+        "total_episode_num": 21
     },
     "SAC-expert": {
-        "avg_reward": 947.1107786685039,
+        "avg_reward": 964.9834113053439,
         "avg_length": 1000.0,
-        "total_episode_num": 100
+        "total_episode_num": 20
     }
 }

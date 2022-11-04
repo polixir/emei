@@ -5,7 +5,6 @@ from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.logger import configure
 from zoo.util import rollout, save_as_h5, get_replay_buffer, save_rollout_info
-import wandb
 from omegaconf import OmegaConf
 
 
@@ -19,14 +18,14 @@ def rollout_and_save(env, sample_num, model, deterministic, save_name):
 
 class SaveMediumAndExpertData(BaseCallback):
     def __init__(
-        self,
-        rollout_env: gym.Env,
-        algorithm_name: str,
-        medium_reward_threshold: float,
-        expert_reward_threshold: float,
-        medium_sample_num: int,
-        expert_sample_num: int,
-        verbose: int = 0,
+            self,
+            rollout_env: gym.Env,
+            algorithm_name: str,
+            medium_reward_threshold: float,
+            expert_reward_threshold: float,
+            medium_sample_num: int,
+            expert_sample_num: int,
+            verbose: int = 0,
     ):
         super().__init__(verbose=verbose)
         self.env = rollout_env
@@ -78,12 +77,14 @@ class SaveMediumAndExpertData(BaseCallback):
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(args):
-    run = wandb.init(
-        project="emei",
-        group=args.exp_name,
-        config=OmegaConf.to_container(args, resolve=True),
-        sync_tensorboard=True,
-    )
+    if args.wandb:
+        import wandb
+        wandb.init(
+            project="emei",
+            group=args.exp_name,
+            config=OmegaConf.to_container(args, resolve=True),
+            sync_tensorboard=True,
+        )
 
     model: BaseAlgorithm = hydra.utils.instantiate(args.algorithm.agent)
 

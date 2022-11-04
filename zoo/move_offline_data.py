@@ -59,7 +59,7 @@ def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("target_dir", type=str)
+    parser.add_argument("--target_dir", type=str, default="offline_data")
     args = parser.parse_args()
 
     main(args.target_dir)

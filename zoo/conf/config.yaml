@@ -1,5 +1,5 @@
 defaults:
-  - task: boundary_IP_swing_up
+  - task: BIPS
   - algorithm: sac
   - _self_
 
@@ -8,6 +8,7 @@ device: "cuda:0"
 log_frequency_agent: 1000
 
 exp_name: default
+wandb: false
 
 root_dir: "./zoo_exp"
 hydra:
