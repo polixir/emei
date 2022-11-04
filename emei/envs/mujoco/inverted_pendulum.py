@@ -259,7 +259,8 @@ if __name__ == "__main__":
     # random_policy_test(env, is_render=True)
 
     env = BoundaryInvertedPendulumSwingUpEnv(sin_cos=True)
-    env.get_dataset("freq_rate=1&time_step=0.02-uniform")
+    print(env.dataset_names)
+    env.get_dataset("uniform")
     # print(env.get_causal_graph(2))
 
     # env = ReboundInvertedPendulumSwingUpEnv()

@@ -68,7 +68,7 @@ class MujocoEnv(EmeiEnv):
         camera_config: Optional[dict] = None,
         reset_noise_scale: float = 0,
     ):
-        EmeiEnv.__init__(self)
+        EmeiEnv.__init__(self, env_params="freq_rate={}&time_step={}".format(freq_rate, time_step))
         # load model from path
         if model_path.startswith("/"):
             fullpath = model_path

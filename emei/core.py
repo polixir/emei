@@ -41,15 +41,17 @@ class Freezable:
 
 
 class OfflineEnv(gym.Env):
-    def __init__(self):
-        env_name = self.__class__.__name__[:-3]
+    def __init__(self,
+                 env_params: str):
+        self.env_name = self.__class__.__name__[:-3]
+        self.env_params = env_params
+
         self._offline_dataset_names = []
-        if env_name in URL_INFOS:
-            self.data_url = URL_INFOS[env_name]
+        if self.env_name in URL_INFOS:
+            self.data_url = URL_INFOS[self.env_name]
             self._offline_dataset_names = []
-            for param in self.data_url:
-                for dataset in self.data_url[param]:
-                    self._offline_dataset_names.append("{}-{}".format(param, dataset))
+            for dataset in self.data_url[self.env_params]:
+                self._offline_dataset_names.append(dataset)
 
     @property
     def dataset_names(self) -> list:
@@ -87,7 +89,7 @@ class OfflineEnv(gym.Env):
         """
         env_name, param, dataset_name = dataset_url.split("/")[-3:]
         dataset_dir = (
-            DATASET_PATH / env_name / param.replace("%3D", "=").replace("%26", "&")
+                DATASET_PATH / env_name / param.replace("%3D", "=").replace("%26", "&")
         )
         dataset_dir.mkdir(parents=True, exist_ok=True)
         return dataset_dir / dataset_name
@@ -109,9 +111,7 @@ class OfflineEnv(gym.Env):
     def get_dataset(self, dataset_name: str) -> Dict[(str, np.ndarray)]:
         assert dataset_name in self._offline_dataset_names
 
-        joint_pos = dataset_name.find("-")
-        param, dataset_type = dataset_name[:joint_pos], dataset_name[joint_pos + 1 :]
-        url = self.data_url[param][dataset_type]
+        url = self.data_url[self.env_params][dataset_name]
         h5path = self.download_dataset(url)
 
         data_dict = self.load_h5_data(h5path)
@@ -148,12 +148,13 @@ class OfflineEnv(gym.Env):
 
 
 class EmeiEnv(Freezable, OfflineEnv):
-    def __init__(self):
+    def __init__(self,
+                 env_params: str):
         """
         Abstract class for all Emei environments to better support model-based RL and offline RL.
         """
         Freezable.__init__(self)
-        OfflineEnv.__init__(self)
+        OfflineEnv.__init__(self, env_params=env_params)
         self._causal_graph = None
 
     def get_causal_graph(self, repeat_times=1):
@@ -287,13 +288,13 @@ class EmeiEnv(Freezable, OfflineEnv):
 
     @abstractmethod
     def get_batch_reward(
-        self, next_obs, pre_obs=None, action=None, state=None, pre_state=None
+            self, next_obs, pre_obs=None, action=None, state=None, pre_state=None
     ):
         pass
 
     @abstractmethod
     def get_batch_terminal(
-        self, next_obs, pre_obs=None, action=None, state=None, pre_state=None
+            self, next_obs, pre_obs=None, action=None, state=None, pre_state=None
     ):
         pass
 
