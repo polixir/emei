@@ -31,10 +31,10 @@ def get_replay_buffer(model):
 
 
 def rollout(
-    env: gym.Env,
-    total_sample_num: int,
-    agent: Optional[BaseAlgorithm] = None,
-    deterministic: bool = False,
+        env: gym.Env,
+        total_sample_num: int,
+        agent: Optional[BaseAlgorithm] = None,
+        deterministic: bool = False,
 ):
     samples = defaultdict(list)
     current_sample_num = 0
@@ -49,23 +49,22 @@ def rollout(
             episode_reward = 0
             episode_length = 0
             done = False
-            obs = env.reset()
+            obs, _ = env.reset()
 
             while not done:
                 if agent is not None:
                     action, _ = agent.predict(obs, deterministic=deterministic)
                 else:
                     action = env.action_space.sample()
-                next_obs, reward, done, info = env.step(action)
-                timeout = "TimeLimit.truncated" in info
-                # terminal = done and not timeout
+                next_obs, reward, terminated, truncated, info = env.step(action)
+                done = terminated or truncated
 
                 samples["observations"].append(obs)
                 samples["next_observations"].append(next_obs)
                 samples["actions"].append(action)
                 samples["rewards"].append(reward)
                 samples["dones"].append(float(done))
-                samples["timeouts"].append(float(timeout))
+                samples["timeouts"].append(float(truncated))
 
                 episode_reward += reward
                 episode_length += 1
@@ -113,7 +112,7 @@ def save_as_h5(dataset, h5file_path):
 
 
 def load_hydra_cfg(
-    results_dir: Union[str, pathlib.Path], reset_device=None
+        results_dir: Union[str, pathlib.Path], reset_device=None
 ) -> omegaconf.DictConfig:
     results_dir = pathlib.Path(results_dir)
     cfg_file = results_dir / ".hydra" / "config.yaml"

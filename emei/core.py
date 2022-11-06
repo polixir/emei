@@ -122,29 +122,29 @@ class OfflineEnv(gym.Env):
             "observations",
             "actions",
             "rewards",
-            "terminals",
+            "dones",
             "timeouts",
         ]:
             assert key in data_dict, "Dataset is missing key %s" % key
 
         return data_dict
 
-    def get_sequence_dataset(self, dataset_name: str) -> Dict[(str, np.ndarray)]:
-        dataset = self.get_dataset(dataset_name)
-        N = dataset["rewards"].shape[0]
-        data = defaultdict(lambda: defaultdict(list))
-
-        sequence_num = 0
-        for i in range(N):
-            done_bool = bool(dataset["terminals"][i])
-            final_timestep = dataset["timeouts"][i]
-
-            for k in dataset:
-                data[sequence_num][k].append(dataset[k][i])
-
-            if done_bool or final_timestep:
-                sequence_num += 1
-        return data
+    # def get_sequence_dataset(self, dataset_name: str) -> Dict[(str, np.ndarray)]:
+    #     dataset = self.get_dataset(dataset_name)
+    #     N = dataset["rewards"].shape[0]
+    #     data = defaultdict(lambda: defaultdict(list))
+    #
+    #     sequence_num = 0
+    #     for i in range(N):
+    #         done_bool = bool(dataset["terminals"][i])
+    #         final_timestep = dataset["timeouts"][i]
+    #
+    #         for k in dataset:
+    #             data[sequence_num][k].append(dataset[k][i])
+    #
+    #         if done_bool or final_timestep:
+    #             sequence_num += 1
+    #     return data
 
 
 class EmeiEnv(Freezable, OfflineEnv):

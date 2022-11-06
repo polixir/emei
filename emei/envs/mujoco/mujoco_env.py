@@ -182,7 +182,7 @@ class MujocoEnv(EmeiEnv):
             self,
             *,
             seed: Optional[int] = None,
-            return_info: bool = False,
+            return_info: bool = True,
             options: Optional[dict] = None,
     ):
         super().reset(seed=seed)
