@@ -27,9 +27,25 @@ def test_hopper_fn():
 
 def test_hopper_step():
     env = HopperRunningEnv()
-    env.reset()
+    obs, info = env.reset()
+    assert obs.shape == (12,)
 
     action = env.action_space.sample()
     obs, reward, terminal, truncated, info = env.step(action)
+    assert obs.shape == (12,)
 
-    assert obs.shape == (12, )
+
+def test_hopper_noise():
+    env = HopperRunningEnv(obs_noise_params=0.01)
+    obs, info = env.reset()
+
+    action = env.action_space.sample()
+    obs, reward, terminal, truncated, info = env.step(action)
+    assert obs.shape == (12,)
+
+    env = HopperRunningEnv(obs_noise_params={0: (0.1, 1)})
+    obs, info = env.reset()
+
+    action = env.action_space.sample()
+    obs, reward, terminal, truncated, info = env.step(action)
+    assert obs.shape == (12,)
