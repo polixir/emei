@@ -31,10 +31,10 @@ def get_replay_buffer(model):
 
 
 def rollout(
-        env: gym.Env,
-        total_sample_num: int,
-        agent: Optional[BaseAlgorithm] = None,
-        deterministic: bool = False,
+    env: gym.Env,
+    total_sample_num: int,
+    agent: Optional[BaseAlgorithm] = None,
+    deterministic: bool = False,
 ):
     samples = defaultdict(list)
     current_sample_num = 0
@@ -112,7 +112,7 @@ def save_as_h5(dataset, h5file_path):
 
 
 def load_hydra_cfg(
-        results_dir: Union[str, pathlib.Path], reset_device=None
+    results_dir: Union[str, pathlib.Path], reset_device=None
 ) -> omegaconf.DictConfig:
     results_dir = pathlib.Path(results_dir)
     cfg_file = results_dir / ".hydra" / "config.yaml"

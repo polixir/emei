@@ -18,14 +18,14 @@ def rollout_and_save(env, sample_num, model, deterministic, save_name):
 
 class SaveMediumAndExpertData(BaseCallback):
     def __init__(
-            self,
-            rollout_env: gym.Env,
-            algorithm_name: str,
-            medium_reward_threshold: float,
-            expert_reward_threshold: float,
-            medium_sample_num: int,
-            expert_sample_num: int,
-            verbose: int = 0,
+        self,
+        rollout_env: gym.Env,
+        algorithm_name: str,
+        medium_reward_threshold: float,
+        expert_reward_threshold: float,
+        medium_sample_num: int,
+        expert_sample_num: int,
+        verbose: int = 0,
     ):
         super().__init__(verbose=verbose)
         self.env = rollout_env
@@ -79,6 +79,7 @@ class SaveMediumAndExpertData(BaseCallback):
 def main(args):
     if args.wandb:
         import wandb
+
         wandb.init(
             project="emei",
             group=args.exp_name,
