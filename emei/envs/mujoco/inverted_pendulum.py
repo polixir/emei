@@ -10,7 +10,7 @@ class BaseInvertedPendulumEnv(MujocoEnv, utils.EzPickle):
             self,
             freq_rate: int = 1,
             time_step: float = 0.02,
-            integrator="standard_euler",
+            integrator="euler",
             # obs
             sin_cos: bool = True,
             # noise
@@ -30,26 +30,29 @@ class BaseInvertedPendulumEnv(MujocoEnv, utils.EzPickle):
         )
 
         if self.sin_cos:
-            self._causal_graph = np.array(
+            self._transition_graph = np.array(
                 [
                     [0, 0, 0, 0, 0],  # x
                     [0, 1, 1, 1, 1],  # sin theta
                     [0, 1, 1, 1, 1],  # cos theta
                     [1, 0, 0, 0, 0],  # v
                     [0, 1, 1, 1, 1],  # omega
-                    [0, 0, 0, 1, 1],
+                    [0, 0, 0, 1, 1],  # action
                 ]
-            )  # action
+            )
         else:
-            self._causal_graph = np.array(
+            self._transition_graph = np.array(
                 [
                     [0, 0, 0, 0],  # x
                     [0, 0, 1, 1],  # theta
                     [1, 0, 0, 0],  # v
                     [0, 1, 1, 1],  # omega
-                    [0, 0, 1, 1],
+                    [0, 0, 1, 1],  # action
                 ]
-            )  # action
+            )
+
+        self._reward_mech_graph = None
+        self._termination_graph = None
 
     def get_batch_obs(self, batch_state):
         if self.sin_cos:
@@ -102,7 +105,7 @@ class ReboundInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
             self,
             freq_rate: int = 1,
             time_step: float = 0.02,
-            integrator="standard_euler",
+            integrator="euler",
             # obs
             sin_cos: bool = False,
             # noise
@@ -135,7 +138,7 @@ class BoundaryInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
             self,
             freq_rate: int = 1,
             time_step: float = 0.02,
-            integrator="standard_euler",
+            integrator="euler",
             # obs
             sin_cos: bool = False,
             # noise
@@ -174,7 +177,7 @@ class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
             self,
             freq_rate: int = 1,
             time_step: float = 0.02,
-            integrator="standard_euler",
+            integrator="euler",
             # obs
             sin_cos: bool = True,
             # noise
@@ -212,7 +215,7 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
             self,
             freq_rate: int = 1,
             time_step: float = 0.02,
-            integrator="standard_euler",
+            integrator="euler",
             # obs
             sin_cos: bool = True,
             # noise
@@ -248,19 +251,18 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
 
 
 if __name__ == "__main__":
-    from emei.util import random_policy_test
-    from gym.wrappers import TimeLimit
-
+    # from emei.util import random_policy_test
+    # from gym.wrappers import TimeLimit
+    #
     # env = TimeLimit(
     #     BoundaryInvertedPendulumBalancingEnv(),
     #     max_episode_steps=1000,
-    #     new_step_api=True,
     # )
     # random_policy_test(env, is_render=True)
 
-    env = BoundaryInvertedPendulumSwingUpEnv(sin_cos=True)
-    print(env.dataset_names)
-    env.get_dataset("uniform")
+    # env = BoundaryInvertedPendulumSwingUpEnv(sin_cos=True)
+    # print(env.dataset_names)
+    # env.get_dataset("uniform")
     # print(env.get_causal_graph(2))
 
     # env = ReboundInvertedPendulumSwingUpEnv()
@@ -269,3 +271,22 @@ if __name__ == "__main__":
     # print(b_s)
     # print(env.get_batch_state(b_o))
     # print((b_s == env.get_batch_state(b_o)).all())
+
+    import gym
+    from PIL import Image
+
+    env = gym.make("CartPole-v1", render_mode="rgb_array")
+
+    env.screen_width = 6000
+    env.screen_height = 4000
+
+    env.reset()
+
+    for i in range(15):
+        env.step(1)
+
+    a = env.render()
+    print(a.shape)
+    image = Image.fromarray(a)
+    image.show()
+    image.save("IP.png")

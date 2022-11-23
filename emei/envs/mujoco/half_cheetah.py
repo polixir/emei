@@ -15,7 +15,7 @@ class HalfCheetahRunningEnv(MujocoEnv, utils.EzPickle):
         self,
         freq_rate: int = 1,
         time_step: float = 0.02,
-        integrator="standard_euler",
+        integrator="euler",
         # weight
         forward_reward_weight=1.0,
         ctrl_cost_weight=0.5,

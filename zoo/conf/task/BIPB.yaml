@@ -2,7 +2,7 @@ name: "BoundaryInvertedPendulumBalancing-v0"
 freq_rate: 1
 time_step: 0.02
 
-params: "freq_rate=${task.freq_rate}&time_step=${task.time_step}"
+params: "freq_rate=${task.freq_rate}&real_time_scale=${task.real_time_scale}"
 
 # sac
 sac_ent_coef: 0.5

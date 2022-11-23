@@ -14,7 +14,7 @@ class BaseInvertedDoublePendulumEnv(MujocoEnv, utils.EzPickle):
         self,
         freq_rate: int = 1,
         time_step: float = 0.02,
-        integrator="standard_euler",
+        integrator="euler",
         # obs
         sin_cos: bool = True,
         # noise
@@ -125,7 +125,7 @@ class ReboundInvertedDoublePendulumBalancingEnv(BaseInvertedDoublePendulumEnv):
         self,
         freq_rate: int = 1,
         time_step: float = 0.02,
-        integrator="standard_euler",
+        integrator="euler",
         # obs
         sin_cos: bool = False,
         # noise
@@ -158,7 +158,7 @@ class BoundaryInvertedDoublePendulumBalancingEnv(BaseInvertedDoublePendulumEnv):
         self,
         freq_rate: int = 1,
         time_step: float = 0.02,
-        integrator="standard_euler",
+        integrator="euler",
         # obs
         sin_cos: bool = False,
         # noise
@@ -197,7 +197,7 @@ class ReboundInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
         self,
         freq_rate: int = 1,
         time_step: float = 0.02,
-        integrator="standard_euler",
+        integrator="euler",
         # obs
         sin_cos: bool = True,
         # noise
@@ -235,7 +235,7 @@ class BoundaryInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
         self,
         freq_rate: int = 1,
         time_step: float = 0.02,
-        integrator="standard_euler",
+        integrator="euler",
         # obs
         sin_cos: bool = True,
         # noise

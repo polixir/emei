@@ -18,44 +18,45 @@ DATASET_PATH = pathlib.Path.home() / ".emei" / "offline_data"
 class Freezable:
     def __init__(self):
         self.frozen_state = None
+        self.frozen = False
 
     def freeze(self):
         """
         Freeze the environment, for rollout-test or query.
         :return: None
         """
-        self.frozen_state = self.get_current_state(copy=True)
+        assert not self.frozen, "env has frozen"
+        self.frozen = True
 
     def unfreeze(self):
         """
         Unfreeze the environment, back to normal interaction.
         :return: None
         """
-        self.set_state(self.frozen_state)
-
-    def get_current_state(self, copy: bool = True):
-        raise NotImplementedError
-
-    def set_state(self, state):
-        raise NotImplementedError
+        assert self.frozen, "env has unfrozen"
+        self.frozen = False
 
 
 class OfflineEnv(gym.Env):
     def __init__(self,
-                 env_params: str):
+                 env_params: Dict[str, Union[str, int, float]]):
         self.env_name = self.__class__.__name__[:-3]
         self.env_params = env_params
 
+        self._offline_dataset_urls = {}
         self._offline_dataset_names = []
         if self.env_name in URL_INFOS:
-            self.data_url = URL_INFOS[self.env_name]
-            self._offline_dataset_names = []
-            for dataset in self.data_url[self.env_params]:
-                self._offline_dataset_names.append(dataset)
+            if self.env_params_name in URL_INFOS[self.env_name]:
+                self._offline_dataset_urls = URL_INFOS[self.env_name][self.env_params_name]
+                self._offline_dataset_names = list(self._offline_dataset_urls.keys())
 
     @property
     def dataset_names(self) -> list:
         return self._offline_dataset_names
+
+    @property
+    def env_params_name(self):
+        return "&".join("{}={}".format(key, self.env_params[key]) for key in sorted(self.env_params.keys()))
 
     @staticmethod
     def load_h5_data(h5path: Union[str, pathlib.Path]) -> Dict[(str, np.ndarray)]:
@@ -109,9 +110,9 @@ class OfflineEnv(gym.Env):
         return dataset_filepath
 
     def get_dataset(self, dataset_name: str) -> Dict[(str, np.ndarray)]:
-        assert dataset_name in self._offline_dataset_names
+        assert dataset_name in self._offline_dataset_urls
 
-        url = self.data_url[self.env_params][dataset_name]
+        url = self._offline_dataset_urls[dataset_name]
         h5path = self.download_dataset(url)
 
         data_dict = self.load_h5_data(h5path)
@@ -129,41 +130,27 @@ class OfflineEnv(gym.Env):
 
         return data_dict
 
-    # def get_sequence_dataset(self, dataset_name: str) -> Dict[(str, np.ndarray)]:
-    #     dataset = self.get_dataset(dataset_name)
-    #     N = dataset["rewards"].shape[0]
-    #     data = defaultdict(lambda: defaultdict(list))
-    #
-    #     sequence_num = 0
-    #     for i in range(N):
-    #         done_bool = bool(dataset["terminals"][i])
-    #         final_timestep = dataset["timeouts"][i]
-    #
-    #         for k in dataset:
-    #             data[sequence_num][k].append(dataset[k][i])
-    #
-    #         if done_bool or final_timestep:
-    #             sequence_num += 1
-    #     return data
-
 
 class EmeiEnv(Freezable, OfflineEnv):
     def __init__(self,
-                 env_params: str):
+                 env_params: Dict[str, Union[str, int, float]]):
         """
         Abstract class for all Emei environments to better support model-based RL and offline RL.
         """
         Freezable.__init__(self)
         OfflineEnv.__init__(self, env_params=env_params)
-        self._causal_graph = None
+        self._transition_graph = None
+        self._reward_mech_graph = None
+        self._termination_mech_graph = None
 
-    def get_causal_graph(self, repeat_times=1):
-        g = self._causal_graph.copy()
+    def get_transition_graph(self, repeat_times=1):
+        g = self._transition_graph.copy()
         num_obs, num_action = (
             self.observation_space.shape[0],
             self.action_space.shape[0],
         )
         assert g.shape == (num_obs + num_action, num_obs)
+
         if repeat_times == 1:
             return g
         else:
@@ -177,137 +164,40 @@ class EmeiEnv(Freezable, OfflineEnv):
                 prod_g = np.matmul(prod_g, aug_g)
             return (sum_g > 0).astype(int)[:, :num_obs]
 
-    def single_query(self, obs, action):
-        self.freeze()
-        self.set_state_by_obs(obs)
-        next_obs, reward, terminal, truncated, info = self.step(action)
-        self.unfreeze()
-        return next_obs, reward, terminal, truncated, info
+    def get_reward_mech_graph(self):
+        return self._reward_mech_graph
 
-    def query(self, obs, action):
-        """
-        Give the environment's reflection to single or batch query.
-        :param obs: single or batch observations.
-        :param action: single or batch action.
-        :return: single or batch (next-obs, reward, done, terminal).
-        """
-        if len(obs.shape) == 1:  # single obs
-            assert len(action.shape) == 1
-            return self.single_query(obs, action)
-        else:
-            next_obs_list, reward_list, terminal_list, truncated_list, info_list = (
-                [],
-                [],
-                [],
-                [],
-                [],
-            )
-            for i in range(obs.shape[0]):
-                next_obs, reward, terminal, truncated, info = self.single_query(
-                    obs[i], action[i]
-                )
-                next_obs_list.append(next_obs)
-                reward_list.append(reward)
-                terminal_list.append(terminal)
-                truncated_list.append(truncated)
-                info_list.append(info)
-            return (
-                np.array(next_obs_list),
-                np.array(reward_list),
-                np.array(terminal_list),
-                np.array(truncated_list),
-                np.array(info_list),
-            )
+    def get_termination_mech_graph(self):
+        return self._termination_mech_graph
 
-    @staticmethod
-    def extend_dim(variable):
-        if variable is not None:
-            return variable.reshape(1, variable.shape[0])
-        else:
-            return None
+    def transform_state_to_obs(self, batch_state):
+        return batch_state.copy()
 
-    def get_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        """Return the reward of single or batch interaction data.
-        :param obs: single or batch observation after taking action.
-        :param pre_obs: single or batch observation before taking action.
-        :param action: single or batch action to be taken.
-        :param state: single or batch state after taking action.
-        :param pre_state: single or batch state before taking action.
-        :return: single or batch reward.
-        """
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        args.remove("self")
-        kwargs = dict(filter(lambda x: x[0] in args, values.items()))
-        if len(obs.shape) == 1:  # single obs
-            kwargs = dict(
-                [(arg, self.extend_dim(value)) for arg, value in kwargs.items()]
-            )
-            return float(self.get_batch_reward(**kwargs)[0, 0])
-        else:
-            return self.get_batch_reward(**kwargs)
-
-    def get_terminal(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        args.remove("self")
-        kwargs = dict(filter(lambda x: x[0] in args, values.items()))
-        if len(obs.shape) == 1:  # single obs
-            kwargs = dict(
-                [(arg, self.extend_dim(value)) for arg, value in kwargs.items()]
-            )
-            return bool(self.get_batch_terminal(**kwargs)[0, 0])
-        else:
-            return self.get_batch_terminal(**kwargs)
+    def transform_obs_to_state(self, batch_obs):
+        return batch_obs.copy()
 
     def get_batch_init_obs(self, batch_size):
-        return self.get_batch_obs(self.get_batch_init_state(batch_size=batch_size))
-
-    def get_obs(self, state):
-        if len(state.shape) == 1:
-            return self.get_batch_obs(state.reshape(1, state.shape[0]))[0]
-        else:
-            return self.get_batch_obs(state)
-
-    def set_state_by_obs(self, obs):
-        """
-        Set model state by observation, only for MDPs.
-        :param obs: single observation
-        :return: None
-        """
-        state = self.get_batch_state(obs.reshape(1, obs.shape[0]))[0]
-        self.set_state(state)
-
-    ################################################################################
-    # methods to override
-    ################################################################################
-
-    @abstractmethod
-    def get_batch_agent_obs(self, obs):
-        pass
+        return self.transform_state_to_obs(self.get_batch_init_state(batch_size=batch_size))
 
     @abstractmethod
     def get_batch_reward(
             self, next_obs, pre_obs=None, action=None, state=None, pre_state=None
     ):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def get_batch_terminal(
             self, next_obs, pre_obs=None, action=None, state=None, pre_state=None
     ):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def get_batch_init_state(self, batch_size):
-        pass
+        raise NotImplementedError
 
-    ########################################
-    # methods maybe to override
-    ########################################
-
-    def get_batch_obs(self, batch_state):
-        return batch_state.copy()
-
-    def get_batch_state(self, batch_obs):
-        return batch_obs.copy()
+    @abstractmethod
+    def get_batch_next_obs(
+            self, next_obs, pre_obs=None, action=None, state=None, pre_state=None
+    ):
+        assert self.frozen
+        raise NotImplementedError
