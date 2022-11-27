@@ -44,9 +44,7 @@ class SaveMediumAndExpertData(BaseCallback):
         best_mean_reward = float(self.parent.best_mean_reward)
         if best_mean_reward > self.medium_reward_threshold and not self.reached_medium:
             self.model.save("SAC-medium-agent")
-            save_as_h5(
-                get_replay_buffer(self.model), self.algorithm_name + "-medium-replay.h5"
-            )
+            save_as_h5(get_replay_buffer(self.model), self.algorithm_name + "-medium-replay.h5")
             rollout_and_save(
                 self.env,
                 self.medium_sample_num,
@@ -59,9 +57,7 @@ class SaveMediumAndExpertData(BaseCallback):
 
         if best_mean_reward > self.expert_reward_threshold and not self.reached_expert:
             self.model.save("SAC-expert-agent")
-            save_as_h5(
-                get_replay_buffer(self.model), self.algorithm_name + "-expert-replay.h5"
-            )
+            save_as_h5(get_replay_buffer(self.model), self.algorithm_name + "-expert-replay.h5")
             rollout_and_save(
                 self.env,
                 self.expert_sample_num,
@@ -87,9 +83,11 @@ def main(args):
             sync_tensorboard=True,
         )
 
-    model: BaseAlgorithm = hydra.utils.instantiate(args.algorithm.agent)
+    partial_model = hydra.utils.instantiate(args.algorithm.agent)
+    env: emei.EmeiEnv = hydra.utils.instantiate(args.task.env)
+    model: BaseAlgorithm = partial_model(env=env)
 
-    eval_env: emei.EmeiEnv = hydra.utils.instantiate(args.algorithm.agent.env)
+    eval_env: emei.EmeiEnv = hydra.utils.instantiate(args.task.env)
     eval_env.reset(seed=args.seed)
     eval_env.action_space.seed(seed=args.seed)
 

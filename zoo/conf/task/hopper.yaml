@@ -1,5 +1,17 @@
 name: "HopperRunning-v0"
-params: "freq_rate=1&real_time_scale=0.02"
+
+freq_rate: 1
+real_time_scale: 0.02
+integrator: "euler"
+
+params: "freq_rate=${task.freq_rate}&integrator=${task.integrator}&real_time_scale=${task.real_time_scale}"
+
+env:
+  _target_: gym.make
+  id: ${task.name}
+  freq_rate: ${task.freq_rate}
+  real_time_scale: ${task.real_time_scale}
+  integrator: ${task.integrator}
 
 # sac
 start_steps: 5000
