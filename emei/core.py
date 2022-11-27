@@ -46,9 +46,7 @@ class OfflineEnv(gym.Env):
         self._offline_dataset_names = []
         if self.env_name in URL_INFOS:
             if self.env_params_name in URL_INFOS[self.env_name]:
-                self._offline_dataset_urls = URL_INFOS[self.env_name][
-                    self.env_params_name
-                ]
+                self._offline_dataset_urls = URL_INFOS[self.env_name][self.env_params_name]
                 self._offline_dataset_names = list(self._offline_dataset_urls.keys())
 
     @property
@@ -57,10 +55,7 @@ class OfflineEnv(gym.Env):
 
     @property
     def env_params_name(self):
-        return "&".join(
-            "{}={}".format(key, self.env_params[key])
-            for key in sorted(self.env_params.keys())
-        )
+        return "&".join("{}={}".format(key, self.env_params[key]) for key in sorted(self.env_params.keys()))
 
     @staticmethod
     def load_h5_data(h5path: Union[str, pathlib.Path]) -> Dict[(str, np.ndarray)]:
@@ -93,9 +88,7 @@ class OfflineEnv(gym.Env):
         :return: local file path.
         """
         env_name, param, dataset_name = dataset_url.split("/")[-3:]
-        dataset_dir = (
-            DATASET_PATH / env_name / param.replace("%3D", "=").replace("%26", "&")
-        )
+        dataset_dir = DATASET_PATH / env_name / param.replace("%3D", "=").replace("%26", "&")
         dataset_dir.mkdir(parents=True, exist_ok=True)
         return dataset_dir / dataset_name
 
@@ -179,30 +172,22 @@ class EmeiEnv(Freezable, OfflineEnv):
     def transform_obs_to_state(self, batch_obs):
         return batch_obs.copy()
 
-    def get_batch_init_obs(self, batch_size):
-        return self.transform_state_to_obs(
-            self.get_batch_init_state(batch_size=batch_size)
-        )
-
-    @abstractmethod
-    def get_batch_reward(
-        self, next_obs, pre_obs=None, action=None, state=None, pre_state=None
-    ):
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_batch_terminal(
-        self, next_obs, pre_obs=None, action=None, state=None, pre_state=None
-    ):
-        raise NotImplementedError
-
     @abstractmethod
     def get_batch_init_state(self, batch_size):
         raise NotImplementedError
 
+    def get_batch_init_obs(self, batch_size):
+        return self.transform_state_to_obs(self.get_batch_init_state(batch_size=batch_size))
+
     @abstractmethod
-    def get_batch_next_obs(
-        self, next_obs, pre_obs=None, action=None, state=None, pre_state=None
-    ):
+    def get_batch_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_batch_terminal(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_batch_next_obs(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
         assert self.frozen
         raise NotImplementedError

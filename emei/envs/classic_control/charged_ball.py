@@ -9,9 +9,7 @@ from emei.envs.classic_control.base_control import BaseControlEnv
 
 class BaseChargedBallEnv(BaseControlEnv):
     def __init__(self, freq_rate=1, time_step=0.02):
-        super(BaseChargedBallEnv, self).__init__(
-            freq_rate=freq_rate, time_step=time_step
-        )
+        super(BaseChargedBallEnv, self).__init__(freq_rate=freq_rate, time_step=time_step)
         self.gravity_acc = 9.8
         self.mass_ball = 1.0
         self.radius = 1.0
@@ -63,14 +61,9 @@ class BaseChargedBallEnv(BaseControlEnv):
                 self.state["on_circle"] = False
         else:
             self.state["free_state"] += updated * (self.time_step / self.freq_rate)
-            if (
-                self.state["free_state"][0] ** 2 + self.state["free_state"][1] ** 2
-                > self.radius**2 + 0.001
-            ):
+            if self.state["free_state"][0] ** 2 + self.state["free_state"][1] ** 2 > self.radius**2 + 0.001:
                 self.state["on_circle"] = True
-                self.state["circle_state"] = self.free_to_circle(
-                    self.state["free_state"]
-                )
+                self.state["circle_state"] = self.free_to_circle(self.state["free_state"])
 
     def _get_update_info(self, electric_force):
         on_circle = self.state["on_circle"]
@@ -80,9 +73,7 @@ class BaseChargedBallEnv(BaseControlEnv):
             sin_theta, cos_theta = math.sin(theta), math.cos(theta)
             centrifugal_force = self.mass_ball * omega**2 * self.radius
             gravity = self.mass_ball * self.gravity_acc
-            theta_acc = (sin_theta * gravity + cos_theta * electric_force) / (
-                self.mass_ball * self.radius
-            )
+            theta_acc = (sin_theta * gravity + cos_theta * electric_force) / (self.mass_ball * self.radius)
             flag = centrifugal_force + sin_theta * electric_force < cos_theta * gravity
             return np.array([omega, theta_acc]), flag
         else:
@@ -116,7 +107,7 @@ class BaseChargedBallEnv(BaseControlEnv):
             self.state["on_circle"] = True
             self.state["circle_state"] = self.free_to_circle(self.state["free_state"])
 
-    def get_batch_terminal(self, next_obs):
+    def get_batch_terminal(self, obs):
         return False
 
     def draw(self):
@@ -158,9 +149,7 @@ class BaseChargedBallEnv(BaseControlEnv):
 
 class ChargedBallCenteringEnv(BaseChargedBallEnv):
     def __init__(self, freq_rate=1, time_step=0.02):
-        super(ChargedBallCenteringEnv, self).__init__(
-            freq_rate=freq_rate, time_step=time_step
-        )
+        super(ChargedBallCenteringEnv, self).__init__(freq_rate=freq_rate, time_step=time_step)
         self.action_space = spaces.Discrete(2)
 
     def _extract_action(self, action):
@@ -173,9 +162,7 @@ class ChargedBallCenteringEnv(BaseChargedBallEnv):
 
 class ContinuousChargedBallCenteringEnv(BaseChargedBallEnv):
     def __init__(self, freq_rate=1, time_step=0.02):
-        super(ContinuousChargedBallCenteringEnv, self).__init__(
-            freq_rate=freq_rate, time_step=time_step
-        )
+        super(ContinuousChargedBallCenteringEnv, self).__init__(freq_rate=freq_rate, time_step=time_step)
         action_high = np.ones(1, dtype=np.float32)
         self.action_space = spaces.Box(-action_high, action_high, dtype=np.float32)
 

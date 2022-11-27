@@ -1,11 +1,8 @@
-import os
+from typing import Optional, Dict, Union, Tuple
+
 import mujoco
 import numpy as np
-
-from functools import partial
 from emei import EmeiEnv
-from collections import OrderedDict
-from typing import Optional, Dict, Union, Tuple
 from scipy.spatial.transform import Rotation
 
 from gym import spaces
@@ -51,7 +48,7 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
         self._camera_config = camera_config if camera_config is None else {}
         self.metadata["render_fps"] = int(np.round(1.0 / (self.real_time_scale * self.freq_rate)))
 
-        EmeiEnv.__init__(self, env_params=dict(freq_rate=freq_rate, real_time_scale=real_time_scale))
+        EmeiEnv.__init__(self, env_params=dict(freq_rate=freq_rate, real_time_scale=real_time_scale, integrator=integrator))
         MujocoEnv.__init__(
             self,
             model_path,
@@ -63,11 +60,6 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
             camera_id,
             camera_name,
         )
-
-    def build_noise_params(self, noise_params: Union[float, Dict[int, float]]):
-        for jnt_id, jnt_type in enumerate(self.model.jnt_type):
-            jnt_name = self.model.joint_id2name(jnt_id)
-            jnt_noise_params = noise_params[jnt_name] if jnt_name in noise_params else {}
 
     def _initialize_simulation(self):
         self.model = mujoco.MjModel.from_xml_path(self.fullpath)
