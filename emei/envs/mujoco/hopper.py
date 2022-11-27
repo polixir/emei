@@ -15,23 +15,14 @@ DEFAULT_CAMERA_CONFIG = {
 
 
 class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
-    metadata = {
-        "render_modes": [
-            "human",
-            "rgb_array",
-            "depth_array",
-        ],
-        "render_fps": 125,
-    }
-
     def __init__(
         self,
         freq_rate: int = 4,
         real_time_scale: float = 0.002,
         integrator: str = "rk4",
         # noise
-        init_noise_params: Union[float, Dict[int, float]] = 5e-3,
-        obs_noise_params: Union[float, Dict[int, float]] = 0,
+        init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
+        obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
         # reward mech
         forward_reward_weight: float = 1.0,
         ctrl_cost_weight: float = 1e-3,
@@ -93,9 +84,7 @@ class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
         min_z, max_z = self._healthy_z_range
         min_angle, max_angle = self._healthy_angle_range
 
-        healthy_state = np.all(
-            np.logical_and(min_state < state, state < max_state), axis=1
-        )
+        healthy_state = np.all(np.logical_and(min_state < state, state < max_state), axis=1)
         healthy_z = np.logical_and(min_z < z, z < max_z)
         healthy_angle = np.logical_and(min_angle < angle, angle < max_angle)
 
@@ -103,24 +92,15 @@ class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
 
         return is_healthy
 
-    def get_batch_reward(
-        self, next_obs, pre_obs=None, action=None, state=None, pre_state=None
-    ):
-        x_velocity = (next_obs[:, 0] - pre_obs[:, 0]) / self.real_time_scale
+    def get_batch_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
+        x_velocity = (obs[:, 0] - pre_obs[:, 0]) / self.dt
         forward_reward = self._forward_reward_weight * x_velocity
         control_cost = self._ctrl_cost_weight * np.sum(np.square(action))
-        healthy_reward = (
-            np.logical_or(self.is_healthy(next_obs), self._terminate_when_unhealthy)
-            * self._healthy_reward
-        )
+        healthy_reward = np.logical_or(self.is_healthy(obs), self._terminate_when_unhealthy) * self._healthy_reward
 
         rewards = healthy_reward + forward_reward - control_cost
-        return rewards.reshape([next_obs.shape[0], 1])
+        return rewards.reshape([obs.shape[0], 1])
 
-    def get_batch_terminal(
-        self, next_obs, pre_obs=None, action=None, state=None, pre_state=None
-    ):
-        terminals = ~np.logical_or(
-            self.is_healthy(next_obs), self._terminate_when_unhealthy
-        )
-        return terminals.reshape([next_obs.shape[0], 1])
+    def get_batch_terminal(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
+        terminals = ~np.logical_or(self.is_healthy(obs), self._terminate_when_unhealthy)
+        return terminals.reshape([obs.shape[0], 1])
