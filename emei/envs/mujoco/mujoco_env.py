@@ -159,8 +159,8 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
         self.do_simulation(action, self.freq_rate)
         obs = self.current_obs
 
-        reward = self.get_batch_reward(obs[None], pre_obs[None], action[None])[0]
-        terminal = self.get_batch_terminal(obs[None], pre_obs[None], action[None])[0]
+        reward = self.get_batch_reward(obs[None], pre_obs[None], action[None])[0, 0]
+        terminal = self.get_batch_terminal(obs[None], pre_obs[None], action[None])[0, 0]
         truncated = False
         info = {}
 
