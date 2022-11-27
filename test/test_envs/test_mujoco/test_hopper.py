@@ -51,10 +51,10 @@ def test_hopper_noise():
     assert obs.shape == (12,)
 
 
-def test_hopper_render():
-    env = HopperRunningEnv(render_mode="rgb_array")
-    obs, info = env.reset()
-
-    action = env.action_space.sample()
-    obs, reward, terminal, truncated, info = env.step(action)
-    assert env.render().shape == (480, 480, 3)
+# def test_hopper_render():
+#     env = HopperRunningEnv(render_mode="rgb_array")
+#     obs, info = env.reset()
+#
+#     action = env.action_space.sample()
+#     obs, reward, terminal, truncated, info = env.step(action)
+#     assert env.render().shape == (480, 480, 3)
