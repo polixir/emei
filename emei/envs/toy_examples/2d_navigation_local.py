@@ -1,6 +1,14 @@
-class toyenv(Env):
-    def __init__(self, mode=toymode.DIAG):
-        super().__init__()
+from typing import Optional
+
+from gym import spaces
+import numpy as np
+
+from emei.core import EmeiEnv
+
+
+class toyenv(EmeiEnv):
+    def __init__(self, mode: str = "DIAG"):
+        EmeiEnv.__init__(self, env_params=dict(mode=mode))
 
         self.observation_space = spaces.Box(np.zeros((2,)), np.ones((2,)), dtype=np.float32)
         self.action_space = spaces.Box(-np.ones((2,)), np.ones((2,)), dtype=np.float32)
@@ -8,11 +16,17 @@ class toyenv(Env):
         self.state = np.zeros((2,))
 
         self.mode = mode
-        self.num_steps = 0
 
-    def reset(self):
-        self.num_steps = 0
+    def get_batch_init_state(self, batch_size):
 
+        return self.np_random.uniform(low=-0.05, high=0.05, size=(batch_size, 4))
+
+    def reset(
+        self,
+        *,
+        seed: Optional[int] = None,
+        options: Optional[dict] = None,
+    ):
         # by default starts the agent in bottom left
         self.state = np.random.random((2,)) * 0.15
 
