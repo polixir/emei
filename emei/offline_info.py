@@ -21,9 +21,9 @@ DATASETS = [
     "SAC-expert-replay",
 ]
 params = [
-    "freq_rate=1,real_time_scale=0.02",
-    "freq_rate=2,real_time_scale=0.02",
-    "freq_rate=5,real_time_scale=0.05",
+    "freq_rate=1,integrator=euler,real_time_scale=0.02",
+    "freq_rate=2,integrator=euler,real_time_scale=0.02",
+    "freq_rate=5,integrator=euler,real_time_scale=0.05",
 ]
 
 URL_INFOS = {}
