@@ -18,14 +18,14 @@ def rollout_and_save(env, sample_num, model, deterministic, save_name):
 
 class SaveMediumAndExpertData(BaseCallback):
     def __init__(
-            self,
-            rollout_env: gym.Env,
-            algorithm_name: str,
-            medium_reward_threshold: float,
-            expert_reward_threshold: float,
-            medium_sample_num: int,
-            expert_sample_num: int,
-            verbose: int = 0,
+        self,
+        rollout_env: gym.Env,
+        algorithm_name: str,
+        medium_reward_threshold: float,
+        expert_reward_threshold: float,
+        medium_sample_num: int,
+        expert_sample_num: int,
+        verbose: int = 0,
     ):
         super().__init__(verbose=verbose)
         self.env = rollout_env
@@ -44,9 +44,7 @@ class SaveMediumAndExpertData(BaseCallback):
         best_mean_reward = float(self.parent.best_mean_reward)
         if best_mean_reward > self.medium_reward_threshold and not self.reached_medium:
             self.model.save("SAC-medium-agent")
-            save_as_h5(
-                get_replay_buffer(self.model), self.algorithm_name + "-medium-replay.h5"
-            )
+            save_as_h5(get_replay_buffer(self.model), self.algorithm_name + "-medium-replay.h5")
             rollout_and_save(
                 self.env,
                 self.medium_sample_num,
@@ -59,9 +57,7 @@ class SaveMediumAndExpertData(BaseCallback):
 
         if best_mean_reward > self.expert_reward_threshold and not self.reached_expert:
             self.model.save("SAC-expert-agent")
-            save_as_h5(
-                get_replay_buffer(self.model), self.algorithm_name + "-expert-replay.h5"
-            )
+            save_as_h5(get_replay_buffer(self.model), self.algorithm_name + "-expert-replay.h5")
             rollout_and_save(
                 self.env,
                 self.expert_sample_num,
@@ -79,6 +75,7 @@ class SaveMediumAndExpertData(BaseCallback):
 def main(args):
     if args.wandb:
         import wandb
+
         wandb.init(
             project="emei",
             group=args.exp_name,
@@ -86,9 +83,11 @@ def main(args):
             sync_tensorboard=True,
         )
 
-    model: BaseAlgorithm = hydra.utils.instantiate(args.algorithm.agent)
+    partial_model = hydra.utils.instantiate(args.algorithm.agent)
+    env: emei.EmeiEnv = hydra.utils.instantiate(args.task.env)
+    model: BaseAlgorithm = partial_model(env=env)
 
-    eval_env: emei.EmeiEnv = hydra.utils.instantiate(args.algorithm.agent.env)
+    eval_env: emei.EmeiEnv = hydra.utils.instantiate(args.task.env)
     eval_env.reset(seed=args.seed)
     eval_env.action_space.seed(seed=args.seed)
 

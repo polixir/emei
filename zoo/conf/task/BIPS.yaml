@@ -1,8 +1,17 @@
 name: "BoundaryInvertedPendulumSwingUp-v0"
-freq_rate: 2
-time_step: 0.02
 
-params: "freq_rate=${task.freq_rate}&time_step=${task.time_step}"
+freq_rate: 1
+real_time_scale: 0.02
+integrator: "euler"
+
+params: "freq_rate=${task.freq_rate}&integrator=${task.integrator}&real_time_scale=${task.real_time_scale}"
+
+env:
+  _target_: gym.make
+  id: ${task.name}
+  freq_rate: ${task.freq_rate}
+  real_time_scale: ${task.real_time_scale}
+  integrator: ${task.integrator}
 
 # sac
 sac_ent_coef: 0.5
@@ -15,9 +24,9 @@ eval_freq: 1000
 # num steps
 num_steps: 1000000
 
-medium_reward: 400
+medium_reward: 700
 expert_reward: 950
-uniform_sample_num: 20000
-random_sample_num: 20000
-medium_sample_num: 20000
-expert_sample_num: 20000
+uniform_sample_num: 50000
+random_sample_num: 50000
+medium_sample_num: 50000
+expert_sample_num: 50000

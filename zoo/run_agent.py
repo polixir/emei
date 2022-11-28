@@ -21,22 +21,21 @@ def run(exp_dir, type="expert", device="cuda:0"):
         file_name = "{}-{}-agent".format(args.algorithm.name, type)
     agent = agent_class.load(exp_dir / file_name)
 
-    env: emei.EmeiEnv = hydra.utils.instantiate(args.algorithm.agent.env)
-    obs = env.reset(seed=args.seed)
+    env: emei.EmeiEnv = hydra.utils.instantiate(args.task.env, render_mode="human")
+    obs, info = env.reset(seed=args.seed)
     env.action_space.seed(seed=args.seed)
 
-    env.render()
     episode_reward = 0
     episode_length = 0
     while True:
         action, state = agent.predict(obs, deterministic=False)
-        next_obs, reward, done, _ = env.step(action)
+        next_obs, reward, terminated, truncated, info = env.step(action)
         env.render()
 
         episode_reward += reward
         episode_length += 1
-        if done:
-            obs = env.reset()
+        if terminated or truncated:
+            obs, info = env.reset()
             print("reward:{}, length:{}".format(episode_reward, episode_length))
             episode_reward = 0
             episode_length = 0

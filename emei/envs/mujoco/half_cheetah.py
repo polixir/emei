@@ -1,64 +1,67 @@
 __credits__ = ["Rushiv Arora"]
 
+from typing import Tuple, Union, Dict
+
 import numpy as np
 
 from gym import utils
-from emei.envs.mujoco.mujoco_env import MujocoEnv
+from gym.spaces import Box
+from emei.envs.mujoco.mujoco_env import EmeiMujocoEnv
 
 DEFAULT_CAMERA_CONFIG = {
     "distance": 4.0,
 }
 
 
-class HalfCheetahRunningEnv(MujocoEnv, utils.EzPickle):
+class HalfCheetahRunningEnv(EmeiMujocoEnv, utils.EzPickle):
     def __init__(
         self,
-        freq_rate: int = 1,
-        time_step: float = 0.02,
-        integrator="standard_euler",
+        freq_rate: int = 4,
+        real_time_scale: float = 0.002,
+        integrator="euler",
         # weight
         forward_reward_weight=1.0,
-        ctrl_cost_weight=0.5,
+        ctrl_cost_weight=0.1,
         # noise
-        reset_noise_scale=0.1,
+        init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.1,
+        obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
+        **kwargs
     ):
-        utils.EzPickle.__init__(**locals())
+        utils.EzPickle.__init__(
+            self,
+            freq_rate,
+            real_time_scale,
+            integrator,
+            init_noise_params,
+            obs_noise_params,
+            forward_reward_weight,
+            ctrl_cost_weight,
+            **kwargs
+        )
 
         self._forward_reward_weight = forward_reward_weight
         self._ctrl_cost_weight = ctrl_cost_weight
 
-        self._reset_noise_scale = reset_noise_scale
-
-        MujocoEnv.__init__(
+        observation_space = Box(low=-np.inf, high=np.inf, shape=(18,), dtype=np.float64)
+        EmeiMujocoEnv.__init__(
             self,
             model_path="half_cheetah.xml",
+            observation_space=observation_space,
             freq_rate=freq_rate,
-            time_step=time_step,
+            real_time_scale=real_time_scale,
             integrator=integrator,
             camera_config=DEFAULT_CAMERA_CONFIG,
-            reset_noise_scale=reset_noise_scale,
+            init_noise_params=init_noise_params,
+            obs_noise_params=obs_noise_params,
+            **kwargs
         )
 
-    def get_batch_reward(self, next_obs, pre_obs=None, action=None):
-        forward_reward = (
-            self._forward_reward_weight
-            * (next_obs[:, 0] - pre_obs[:, 0])
-            / self.time_step
-        )
+    def get_batch_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
+        forward_reward = self._forward_reward_weight * (obs[:, 0] - pre_obs[:, 0]) / self.dt
         control_cost = self._ctrl_cost_weight * np.sum(np.square(action))
         rewards = forward_reward - control_cost
-        return rewards.reshape([next_obs.shape[0], 1])
+        return rewards.reshape([obs.shape[0], 1])
 
-    def get_batch_terminal(self, next_obs, pre_obs=None, action=None):
-        notdone = np.isfinite(next_obs).all(axis=1)
-        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
-
-    def get_batch_agent_obs(self, obs):
-        return obs[:, 1:]
-
-
-if __name__ == "__main__":
-    from emei.util import random_policy_test
-
-    env = HalfCheetahRunningEnv()
-    random_policy_test(env, is_render=True)
+    def get_batch_terminal(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
+        notdone = np.isfinite(obs).all(axis=1)
+        return np.logical_not(notdone).reshape([obs.shape[0], 1])
