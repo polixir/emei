@@ -1,11 +1,15 @@
+from typing import cast
+
 import gym
 import hydra
-import emei
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.logger import configure
-from zoo.util import rollout, save_as_h5, get_replay_buffer, save_rollout_info
 from omegaconf import OmegaConf
+
+import emei
+from emei.core import get_params_str
+from zoo.util import rollout, save_as_h5, get_replay_buffer, save_rollout_info
 
 
 def rollout_and_save(env, sample_num, model, deterministic, save_name):
@@ -84,10 +88,11 @@ def main(args):
         )
 
     partial_model = hydra.utils.instantiate(args.algorithm.agent)
-    env: emei.EmeiEnv = hydra.utils.instantiate(args.task.env)
+
+    env = cast(emei.EmeiEnv, gym.make(args.task.name, **args.task.params))
     model: BaseAlgorithm = partial_model(env=env)
 
-    eval_env: emei.EmeiEnv = hydra.utils.instantiate(args.task.env)
+    eval_env = cast(emei.EmeiEnv, gym.make(args.task.name, **args.task.params))
     eval_env.reset(seed=args.seed)
     eval_env.action_space.seed(seed=args.seed)
 
@@ -127,4 +132,5 @@ def main(args):
 
 
 if __name__ == "__main__":
+    OmegaConf.register_new_resolver("to_str", get_params_str)
     main()

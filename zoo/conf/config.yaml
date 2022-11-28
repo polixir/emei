@@ -13,8 +13,8 @@ wandb: false
 root_dir: "./zoo_exp"
 hydra:
   run:
-    dir: ${root_dir}/${algorithm.name}/${exp_name}/${task.name}/${task.params}/${now:%Y.%m.%d.%H%M%S}
+    dir: ${root_dir}/${algorithm.name}/${exp_name}/${task.name}/${to_str:${task.params}}/${now:%Y.%m.%d.%H%M%S}
   sweep:
-    dir: ${root_dir}/${algorithm.name}/${exp_name}/${task.name}/${task.params}/${now:%Y.%m.%d.%H%M%S}
+    dir: ${root_dir}/${algorithm.name}/${exp_name}/${task.name}/${to_str:${task.params}}/${now:%Y.%m.%d.%H%M%S}
   job:
     chdir: true

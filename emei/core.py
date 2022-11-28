@@ -37,6 +37,10 @@ class Freezable:
         self.frozen = False
 
 
+def get_params_str(params: dict):
+    return ",".join("{}={}".format(key, params[key]) for key in sorted(params.keys()))
+
+
 class OfflineEnv(gym.Env):
     def __init__(self, env_params: Dict[str, Union[str, int, float]]):
         self.env_name = self.__class__.__name__[:-3]
@@ -55,7 +59,7 @@ class OfflineEnv(gym.Env):
 
     @property
     def env_params_name(self):
-        return "&".join("{}={}".format(key, self.env_params[key]) for key in sorted(self.env_params.keys()))
+        return get_params_str(self.env_params)
 
     @staticmethod
     def load_h5_data(h5path: Union[str, pathlib.Path]) -> Dict[(str, np.ndarray)]:
