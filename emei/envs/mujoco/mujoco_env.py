@@ -229,19 +229,19 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
             if jnt_type == 0:
                 pos_len, vel_len = 7, 6
 
-                noisy_pos[cur_pos_idx : cur_pos_idx + 3] += np.random.randn(batch_size, 3) * pos_n[:3]
-                angle = Rotation.from_quat(origin_pos[cur_pos_idx + 3 : cur_pos_idx + 7]).as_euler("zyx", degrees=True)
+                noisy_pos[:, cur_pos_idx : cur_pos_idx + 3] += np.random.randn(batch_size, 3) * pos_n[:3]
+                angle = Rotation.from_quat(origin_pos[:, cur_pos_idx + 3 : cur_pos_idx + 7]).as_euler("zyx", degrees=True)
                 angle += np.random.randn(batch_size, 3) * pos_n[3:6]
-                noisy_pos[cur_pos_idx + 3 : cur_pos_idx + 7] = Rotation.from_euler("xyz", angle, degrees=True).as_quat()
+                noisy_pos[:, cur_pos_idx + 3 : cur_pos_idx + 7] = Rotation.from_euler("xyz", angle, degrees=True).as_quat()
 
-                noisy_vel[cur_vel_idx : cur_vel_idx + 3] += np.random.randn(batch_size, 3) * vel_n[:3]
-                noisy_vel[cur_vel_idx + 3 : cur_vel_idx + 6] += np.random.randn(batch_size, 3) * vel_n[3:6]
+                noisy_vel[:, cur_vel_idx : cur_vel_idx + 3] += np.random.randn(batch_size, 3) * vel_n[:3]
+                noisy_vel[:, cur_vel_idx + 3 : cur_vel_idx + 6] += np.random.randn(batch_size, 3) * vel_n[3:6]
             elif jnt_type == 1:
                 raise NotImplementedError
             else:
                 pos_len, vel_len = 1, 1
-                noisy_pos[cur_pos_idx : cur_pos_idx + 1] += np.random.randn(batch_size, 1) * pos_n
-                noisy_vel[cur_vel_idx : cur_vel_idx + 1] += np.random.randn(batch_size, 1) * vel_n
+                noisy_pos[:, cur_pos_idx : cur_pos_idx + 1] += np.random.randn(batch_size, 1) * pos_n
+                noisy_vel[:, cur_vel_idx : cur_vel_idx + 1] += np.random.randn(batch_size, 1) * vel_n
 
             cur_pos_idx += pos_len
             cur_vel_idx += vel_len
