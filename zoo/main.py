@@ -75,42 +75,42 @@ class SaveMediumAndExpertData(BaseCallback):
         return not self.reached_expert
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="config")
-def main(args):
-    if args.wandb:
+@hydra.main(version_base=None, config_path="conf", config_name="main")
+def main(cfg):
+    if cfg.wandb:
         import wandb
 
         wandb.init(
             project="emei",
-            group=args.exp_name,
-            config=OmegaConf.to_container(args, resolve=True),
+            group=cfg.exp_name,
+            config=OmegaConf.to_container(cfg, resolve=True),
             sync_tensorboard=True,
         )
 
-    partial_model = hydra.utils.instantiate(args.algorithm.agent)
+    partial_model = hydra.utils.instantiate(cfg.algorithm.agent)
 
-    env = cast(emei.EmeiEnv, gym.make(args.task.name, **args.task.params))
+    env = cast(emei.EmeiEnv, gym.make(cfg.task.env_id, **cfg.task.params))
     model: BaseAlgorithm = partial_model(env=env)
 
-    eval_env = cast(emei.EmeiEnv, gym.make(args.task.name, **args.task.params))
-    eval_env.reset(seed=args.seed)
-    eval_env.action_space.seed(seed=args.seed)
+    eval_env = cast(emei.EmeiEnv, gym.make(cfg.task.env_id, **cfg.task.params))
+    eval_env.reset(seed=cfg.seed)
+    eval_env.action_space.seed(seed=cfg.seed)
 
     save_offline_callback = SaveMediumAndExpertData(
         eval_env,
-        algorithm_name=args.algorithm.name,
-        medium_reward_threshold=args.task.medium_reward,
-        expert_reward_threshold=args.task.expert_reward,
-        medium_sample_num=args.task.medium_sample_num,
-        expert_sample_num=args.task.expert_sample_num,
+        algorithm_name=cfg.algorithm.name,
+        medium_reward_threshold=cfg.task.medium_reward,
+        expert_reward_threshold=cfg.task.expert_reward,
+        medium_sample_num=cfg.task.medium_sample_num,
+        expert_sample_num=cfg.task.expert_sample_num,
     )
     eval_callback = EvalCallback(
         eval_env,
         best_model_save_path="./",
         callback_on_new_best=save_offline_callback,
         log_path="./",
-        n_eval_episodes=args.task.n_eval_episodes,
-        eval_freq=args.task.eval_freq,
+        n_eval_episodes=cfg.task.n_eval_episodes,
+        eval_freq=cfg.task.eval_freq,
         deterministic=False,
         render=False,
     )
@@ -119,16 +119,16 @@ def main(args):
     model.save("SAC-random-agent")
     rollout_and_save(
         eval_env,
-        args.task.random_sample_num,
+        cfg.task.random_sample_num,
         model,
         False,
-        args.algorithm.name + "-random",
+        cfg.algorithm.name + "-random",
     )
-    rollout_and_save(eval_env, args.task.uniform_sample_num, None, False, "uniform")
+    rollout_and_save(eval_env, cfg.task.uniform_sample_num, None, False, "uniform")
 
     logger = configure("tb", format_strings=["tensorboard"])
     model.set_logger(logger)
-    model.learn(total_timesteps=args.task.num_steps, callback=eval_callback)
+    model.learn(total_timesteps=cfg.task.num_steps, callback=eval_callback)
 
 
 if __name__ == "__main__":

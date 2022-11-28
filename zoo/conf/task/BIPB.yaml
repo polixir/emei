@@ -1,4 +1,4 @@
-name: "BoundaryInvertedPendulumBalancing-v0"
+env_id: "BoundaryInvertedPendulumBalancing-v0"
 
 params:
   freq_rate: 1

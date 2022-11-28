@@ -1,4 +1,4 @@
-name: "BoundaryInvertedPendulumSwingUp-v0"
+env_id: "BoundaryInvertedPendulumSwingUp-v0"
 
 params:
   freq_rate: 1
