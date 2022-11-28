@@ -1,4 +1,4 @@
-<img src="img/emei_logo.png" align="right" width="40%"/>
+<img src="doc/emei_logo.png" align="right" width="40%"/>
 
 <a href="https://github.com/FrankTianTT/emei"><img src="https://github.com/FrankTianTT/emei/actions/workflows/ci.yml/badge.svg"></a>
 <a href="https://github.com/FrankTianTT/emei"><img src="https://codecov.io/github/FrankTianTT/emei/branch/main/graph/badge.svg"></a>
