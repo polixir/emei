@@ -22,8 +22,8 @@ DATASETS = [
 ]
 params = [
     "freq_rate=1,integrator=euler,real_time_scale=0.02",
-    "freq_rate=2,integrator=euler,real_time_scale=0.02",
-    "freq_rate=5,integrator=euler,real_time_scale=0.05",
+    "freq_rate=2,integrator=euler,real_time_scale=0.01",
+    "freq_rate=5,integrator=euler,real_time_scale=0.01",
 ]
 
 URL_INFOS = {}
