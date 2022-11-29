@@ -2,6 +2,7 @@ from typing import Optional
 
 from gym import spaces
 import numpy as np
+import matplotlib.pyplot as plt
 
 from emei.core import EmeiEnv
 
