@@ -52,9 +52,14 @@ def test_hopper_noise():
 
 
 # def test_hopper_render():
-#     env = HopperRunningEnv(render_mode="rgb_array")
+#     env = HopperRunningEnv(render_mode="human")
 #     obs, info = env.reset()
 #
-#     action = env.action_space.sample()
-#     obs, reward, terminal, truncated, info = env.step(action)
-#     assert env.render().shape == (480, 480, 3)
+#     steps = 0
+#     while True:
+#         action = env.action_space.sample()
+#         obs, reward, terminal, truncated, info = env.step(action)
+#         env.render()
+#         steps += 1
+#         if terminal:
+#             assert False
