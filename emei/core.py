@@ -184,14 +184,13 @@ class EmeiEnv(Freezable, OfflineEnv):
         return self.transform_state_to_obs(self.get_batch_init_state(batch_size=batch_size))
 
     @abstractmethod
-    def get_batch_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
+    def get_batch_reward(self, next_obs, obs=None, action=None, next_state=None, state=None):
         raise NotImplementedError
 
     @abstractmethod
-    def get_batch_terminal(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
+    def get_batch_terminal(self, next_obs, obs=None, action=None, next_state=None, state=None):
         raise NotImplementedError
 
     @abstractmethod
-    def get_batch_next_obs(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        assert self.frozen
+    def get_batch_next_obs(self, obs, action):
         raise NotImplementedError

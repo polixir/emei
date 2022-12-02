@@ -166,6 +166,19 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
 
         return obs, reward, terminal, truncated, info
 
+    def get_batch_next_obs(self, obs, action):
+        self.freeze()
+
+        next_obs = np.empty(shape=obs.shape)
+
+        for i, o in enumerate(obs):
+            self.set_state(o[: self.model.nq], o[self.model.nq :])
+            self.do_simulation(action[i], self.freq_rate)
+            next_obs[i] = self.current_obs
+        self.unfreeze()
+
+        return next_obs
+
     def get_euler_pos(
         self,
         old_pos: np.ndarray,

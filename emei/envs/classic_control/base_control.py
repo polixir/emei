@@ -150,7 +150,7 @@ def ODE_approximation(
 
     Args:
         derivs: the derivative of the system and has the signature ``dy = derivs(yi)``
-        y0: initial state vector
+        y0: initial next_state vector
         dt: interval btween two sample time
         steps: sample times
 

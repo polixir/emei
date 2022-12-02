@@ -56,12 +56,12 @@ class HalfCheetahRunningEnv(EmeiMujocoEnv, utils.EzPickle):
             **kwargs
         )
 
-    def get_batch_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        forward_reward = self._forward_reward_weight * (obs[:, 0] - pre_obs[:, 0]) / self.dt
+    def get_batch_reward(self, next_obs, obs=None, action=None, next_state=None, state=None):
+        forward_reward = self._forward_reward_weight * (next_obs[:, 0] - obs[:, 0]) / self.dt
         control_cost = self._ctrl_cost_weight * np.sum(np.square(action))
         rewards = forward_reward - control_cost
-        return rewards.reshape([obs.shape[0], 1])
+        return rewards.reshape([next_obs.shape[0], 1])
 
-    def get_batch_terminal(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        notdone = np.isfinite(obs).all(axis=1)
-        return np.logical_not(notdone).reshape([obs.shape[0], 1])
+    def get_batch_terminal(self, next_obs, obs=None, action=None, next_state=None, state=None):
+        notdone = np.isfinite(next_obs).all(axis=1)
+        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])

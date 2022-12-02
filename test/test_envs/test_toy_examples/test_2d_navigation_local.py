@@ -7,7 +7,7 @@ def test_2d_navigation():
 
     # while True:
     #     action = env.action_space.sample()
-    #     obs, reward, terminal, truncated, info = env.step(action)
+    #     next_obs, reward, terminal, truncated, info = env.step(action)
     #     # env.render()
     #     if terminal:
     #         assert True

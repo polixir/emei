@@ -13,14 +13,14 @@ def test_hopper_fn():
     assert is_healthy.shape == (128,) and not np.any(is_healthy)
 
     reward = env.get_batch_reward(
+        next_obs=np.ones([128, 12]),
         obs=np.ones([128, 12]),
-        pre_obs=np.ones([128, 12]),
         action=np.ones([128, 3]),
     )
     assert reward.shape == (128, 1)
 
     terminal = env.get_batch_terminal(
-        obs=np.ones([128, 12]),
+        next_obs=np.ones([128, 12]),
     )
     assert terminal.shape == (128, 1)
 
@@ -53,12 +53,12 @@ def test_hopper_noise():
 
 # def test_hopper_render():
 #     env = HopperRunningEnv(render_mode="human")
-#     obs, info = env.reset()
+#     next_obs, info = env.reset()
 #
 #     steps = 0
 #     while True:
 #         action = env.action_space.sample()
-#         obs, reward, terminal, truncated, info = env.step(action)
+#         next_obs, reward, terminal, truncated, info = env.step(action)
 #         env.render()
 #         steps += 1
 #         if terminal:

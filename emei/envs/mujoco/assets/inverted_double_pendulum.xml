@@ -1,6 +1,6 @@
 <!-- Cartpole Model
 
-    The state space is populated with joints in the order that they are
+    The next_state space is populated with joints in the order that they are
     defined in this file. The actuators also operate on joints.
 
     State-Space (name/joint/parameter):

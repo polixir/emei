@@ -92,15 +92,15 @@ class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
 
         return is_healthy
 
-    def get_batch_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        x_velocity = (obs[:, 0] - pre_obs[:, 0]) / self.dt
+    def get_batch_reward(self, next_obs, obs=None, action=None, next_state=None, state=None):
+        x_velocity = (next_obs[:, 0] - obs[:, 0]) / self.dt
         forward_reward = self._forward_reward_weight * x_velocity
         control_cost = self._ctrl_cost_weight * np.sum(np.square(action))
-        healthy_reward = np.logical_or(self.is_healthy(obs), self._terminate_when_unhealthy) * self._healthy_reward
+        healthy_reward = np.logical_or(self.is_healthy(next_obs), self._terminate_when_unhealthy) * self._healthy_reward
 
         rewards = healthy_reward + forward_reward - control_cost
-        return rewards.reshape([obs.shape[0], 1])
+        return rewards.reshape([next_obs.shape[0], 1])
 
-    def get_batch_terminal(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        terminals = ~np.logical_or(self.is_healthy(obs), self._terminate_when_unhealthy)
-        return terminals.reshape([obs.shape[0], 1])
+    def get_batch_terminal(self, next_obs, obs=None, action=None, next_state=None, state=None):
+        terminals = ~np.logical_or(self.is_healthy(next_obs), self._terminate_when_unhealthy)
+        return terminals.reshape([next_obs.shape[0], 1])
