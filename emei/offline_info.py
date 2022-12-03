@@ -5,6 +5,7 @@ ENV_NAMES = [
     "BoundaryInvertedPendulumSwingUp",
     "BoundaryInvertedDoublePendulumBalancing",
     "BoundaryInvertedDoublePendulumSwingUp",
+    "ContinuousCartPoleSwingUp",
     "HopperRunning",
     "Walker2dRunning",
     "HalfCheetahRunning",
