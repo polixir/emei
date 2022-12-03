@@ -47,7 +47,7 @@ class BaseInvertedPendulumEnv(EmeiMujocoEnv, utils.EzPickle):
     def current_obs(self):
         state = self.state_vector().copy()
         state[1] = (state[1] + np.pi) % (2 * np.pi) - np.pi
-        return state
+        return state.astype(np.float32)
 
 
 class ReboundInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):

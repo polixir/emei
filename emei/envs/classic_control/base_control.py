@@ -58,6 +58,10 @@ class BaseControlEnv(EmeiEnv):
     def draw(self):
         pass
 
+    @property
+    def current_obs(self):
+        return self.state.copy().astype(np.float32)
+
     def step(self, action: Union[int, np.ndarray]):
         if isinstance(action, int):
             action = np.asarray(action)
@@ -66,14 +70,14 @@ class BaseControlEnv(EmeiEnv):
         assert self.action_space.contains(action), err_msg
         assert self.state is not None, "Call reset before using step method."
 
-        pre_obs = self.state.copy()
+        pre_obs = self.current_obs
 
         x_action = self._extract_action(action)
         s_augmented = np.append(self.state, x_action)
         s_augmented_out = ODE_approximation(self._dsdt, s_augmented, self.real_time_scale, self.freq_rate)
         self.state = s_augmented_out[: len(self.state)]
 
-        obs = self.state.copy()
+        obs = self.current_obs
 
         reward = self.get_batch_reward(obs[None], pre_obs[None], action[None])[0, 0]
         terminal = self.get_batch_terminal(obs[None], pre_obs[None], action[None])[0, 0]

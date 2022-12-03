@@ -1,4 +1,10 @@
-from emei.envs.classic_control.cartpole import BaseCartPoleEnv, CartPoleBalancingEnv, CartPoleSwingUpEnv
+from emei.envs.classic_control.cartpole import (
+    BaseCartPoleEnv,
+    CartPoleBalancingEnv,
+    CartPoleSwingUpEnv,
+    ContinuousCartPoleBalancingEnv,
+    ContinuousCartPoleSwingUpEnv,
+)
 
 
 def test_cartpole():
@@ -30,6 +36,32 @@ def test_cartpole_swingup():
     while True:
         action = env.action_space.sample()
         obs, reward, terminal, truncated, info = env.step(action)
+        # env.render()
+        if terminal:
+            assert True
+            break
+
+
+def test_continuous_cartpole_balancing():
+    env = ContinuousCartPoleBalancingEnv()
+    obs, info = env.reset()
+
+    while True:
+        action = env.action_space.sample()
+        obs, reward, terminal, truncated, info = env.step(action)
+        if terminal:
+            assert True
+            break
+
+
+def test_continuous_cartpole_swingup():
+    env = ContinuousCartPoleSwingUpEnv()
+    obs, info = env.reset()
+
+    while True:
+        action = env.action_space.sample()
+        obs, reward, terminal, truncated, info = env.step(action)
+        # env.render()
         if terminal:
             assert True
             break

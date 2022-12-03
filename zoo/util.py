@@ -113,7 +113,7 @@ def save_as_h5(dataset, h5file_path):
 
 def load_hydra_cfg(results_dir: Union[str, pathlib.Path], reset_device=None) -> omegaconf.DictConfig:
     results_dir = pathlib.Path(results_dir)
-    cfg_file = results_dir / ".hydra" / "main.yaml"
+    cfg_file = results_dir / ".hydra" / "config.yaml"
     cfg = omegaconf.OmegaConf.load(cfg_file)
     if not isinstance(cfg, omegaconf.DictConfig):
         raise RuntimeError("Configuration format not a omegaconf.DictConf")

@@ -30,34 +30,40 @@ class BaseCartPoleEnv(BaseControlEnv):
         self.theta_threshold_radians = 12 * 2 * math.pi / 360
         self.x_threshold = 2.4
 
-        # Angle limit set to 2 * theta_threshold_radians so failing observation
-        # is still within bounds.
-        high = np.array(
-            [
-                self.x_threshold * 2,
-                np.finfo(np.float32).max,
-                self.theta_threshold_radians * 2,
-                np.finfo(np.float32).max,
-            ],
-            dtype=np.float32,
-        )
-
         self.action_space = spaces.Discrete(2)
-        self.observation_space = spaces.Box(-high, high, dtype=np.float32)
+        self.observation_space = spaces.Box(-np.inf, np.inf, shape=(4,), dtype=np.float32)
+
+        self._transition_graph = np.array(
+            [[0, 0, 0, 0], [0, 0, 1, 1], [1, 0, 0, 0], [0, 1, 1, 1], [0, 0, 1, 1]]  # x  # theta  # v  # omega  # action
+        )
+        self._reward_mech_graph = None
+        self._termination_graph = None
 
     def _dsdt(self, s_augmented):
-        x, x_dot, theta, theta_dot, force = s_augmented
+        x, theta, x_dot, theta_dot, force = s_augmented
 
         pole_mass_length = self.mass_pole * self.length
-        cos_theta = math.cos(theta)
-        sin_theta = math.sin(theta)
+        cos_theta = math.cos(self.get_absolute_theta(theta))
+        sin_theta = math.sin(self.get_absolute_theta(theta))
         temp = (force + pole_mass_length * theta_dot**2 * sin_theta) / self.total_mass
         theta_acc = (self.gravity * sin_theta - cos_theta * temp) / (
             self.length * (4.0 / 3.0 - self.mass_pole * cos_theta**2 / self.total_mass)
         )
         x_acc = temp - pole_mass_length * theta_acc * cos_theta / self.total_mass
 
-        return np.array([x_dot, x_acc, theta_dot, theta_acc, 0], dtype=np.float32)
+        return np.array([x_dot, theta_dot, x_acc, theta_acc, 0], dtype=np.float32)
+
+    def get_absolute_theta(self, theta):
+        return theta
+
+    def get_batch_init_state(self, batch_size):
+        return self.np_random.uniform(low=-0.05, high=0.05, size=(batch_size, 4)).astype(np.float32)
+
+    @property
+    def current_obs(self):
+        state = self.state.copy()
+        state[1] = (state[1] + np.pi) % (2 * np.pi) - np.pi
+        return state
 
     def draw(self):
         world_width = self.x_threshold * 2
@@ -88,7 +94,7 @@ class BaseCartPoleEnv(BaseControlEnv):
 
         pole_coords = []
         for coord in [(l, b), (l, t), (r, t), (r, b)]:
-            coord = pygame.math.Vector2(coord).rotate_rad(-x[2])
+            coord = pygame.math.Vector2(coord).rotate_rad(-self.get_absolute_theta(x[1]))
             coord = (coord[0] + cartx, coord[1] + carty + axleoffset)
             pole_coords.append(coord)
         gfxdraw.aapolygon(self.surf, pole_coords, (202, 152, 101))
@@ -122,14 +128,13 @@ class CartPoleBalancingEnv(BaseCartPoleEnv):
         return self.force_mag if action == 1 else -self.force_mag
 
     def get_batch_terminal(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        notdone = (np.abs(next_obs[:, 2]) < self.theta_threshold_radians) & (np.abs(next_obs[:, 0]) < self.x_threshold)
+        x = next_obs[:, 0]
+        theta = self.get_absolute_theta(next_obs[:, 1])
+        notdone = (np.abs(theta) < self.theta_threshold_radians) & (np.abs(x) < self.x_threshold)
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
     def get_batch_reward(self, next_obs, obs=None, action=None, next_state=None, state=None):
         return np.ones([next_obs.shape[0], 1])
-
-    def get_batch_init_state(self, batch_size):
-        return self.np_random.uniform(low=-0.05, high=0.05, size=(batch_size, 4))
 
 
 class CartPoleSwingUpEnv(BaseCartPoleEnv):
@@ -137,20 +142,42 @@ class CartPoleSwingUpEnv(BaseCartPoleEnv):
         super(CartPoleSwingUpEnv, self).__init__(
             freq_rate=freq_rate, real_time_scale=real_time_scale, integrator=integrator, **kwargs
         )
-        self.x_threshold = 5
+        self.x_threshold = 10
 
     def _extract_action(self, action):
         return self.force_mag if action == 1 else -self.force_mag
 
     def get_batch_terminal(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        notdone = np.abs(next_obs[:, 0]) < self.x_threshold
+        x = next_obs[:, 0]
+        notdone = np.abs(x) < self.x_threshold
         return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
     def get_batch_reward(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        rewards = (np.cos(next_obs[:, 2]) + 1) / 2
+        theta = self.get_absolute_theta(next_obs[:, 1])
+        rewards = (np.cos(theta) + 1) / 2
         return rewards.reshape([next_obs.shape[0], 1])
 
-    def get_batch_init_state(self, batch_size):
-        init_state = self.np_random.uniform(low=-0.05, high=0.05, size=(batch_size, 4))
-        init_state[:, 2] += np.pi
-        return init_state
+    def get_absolute_theta(self, theta):
+        return theta + np.pi
+
+
+class ContinuousCartPoleBalancingEnv(CartPoleBalancingEnv):
+    def __init__(self, freq_rate: int = 1, real_time_scale: float = 0.02, integrator: str = "euler", **kwargs):
+        super(ContinuousCartPoleBalancingEnv, self).__init__(
+            freq_rate=freq_rate, real_time_scale=real_time_scale, integrator=integrator, **kwargs
+        )
+        self.action_space = spaces.Box(-1, 1, shape=(1,), dtype=np.float32)
+
+    def _extract_action(self, action):
+        return self.force_mag * action[0]
+
+
+class ContinuousCartPoleSwingUpEnv(CartPoleSwingUpEnv):
+    def __init__(self, freq_rate: int = 1, real_time_scale: float = 0.02, integrator: str = "euler", **kwargs):
+        super(ContinuousCartPoleSwingUpEnv, self).__init__(
+            freq_rate=freq_rate, real_time_scale=real_time_scale, integrator=integrator, **kwargs
+        )
+        self.action_space = spaces.Box(-1, 1, shape=(1,), dtype=np.float32)
+
+    def _extract_action(self, action):
+        return self.force_mag * action[0]
