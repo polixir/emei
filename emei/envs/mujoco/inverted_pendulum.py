@@ -23,7 +23,7 @@ class BaseInvertedPendulumEnv(EmeiMujocoEnv, utils.EzPickle):
         utils.EzPickle.__init__(self, freq_rate, real_time_scale, integrator, init_noise_params, obs_noise_params, **kwargs)
 
         high = np.array([np.inf, np.pi, np.inf, np.inf])
-        observation_space = Box(low=-high, high=high, dtype=np.float64)
+        observation_space = Box(low=-high, high=high, dtype=np.float32)
         EmeiMujocoEnv.__init__(
             self,
             model_path="inverted_pendulum.xml",

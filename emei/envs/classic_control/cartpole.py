@@ -31,7 +31,8 @@ class BaseCartPoleEnv(BaseControlEnv):
         self.x_threshold = 2.4
 
         self.action_space = spaces.Discrete(2)
-        self.observation_space = spaces.Box(-np.inf, np.inf, shape=(4,), dtype=np.float32)
+        high = np.array([np.inf, np.pi, np.inf, np.inf])
+        self.observation_space = spaces.Box(low=-high, high=high, dtype=np.float32)
 
         self._transition_graph = np.array(
             [[0, 0, 0, 0], [0, 0, 1, 1], [1, 0, 0, 0], [0, 1, 1, 1], [0, 0, 1, 1]]  # x  # theta  # v  # omega  # action

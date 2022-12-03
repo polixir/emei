@@ -86,6 +86,19 @@ class BaseControlEnv(EmeiEnv):
 
         return obs, reward, terminal, truncated, info
 
+    def get_batch_next_obs(self, obs, action):
+        self.freeze()
+
+        next_obs = np.empty(shape=obs.shape)
+
+        for i, (s, a) in enumerate(zip(obs, action)):
+            s_augmented = np.append(s, self._extract_action(a))
+            s_augmented_out = ODE_approximation(self._dsdt, s_augmented, self.real_time_scale, self.freq_rate)
+            next_obs[i] = s_augmented_out[: len(self.state)]
+        self.unfreeze()
+
+        return next_obs
+
     def render(self):
         if self.render_mode is None:
             logger.warn(
