@@ -1,3 +1,5 @@
+import numpy as np
+
 from emei.envs.classic_control.cartpole import (
     BaseCartPoleEnv,
     CartPoleBalancingEnv,
@@ -65,3 +67,11 @@ def test_continuous_cartpole_swingup():
         if terminal:
             assert True
             break
+
+
+def test_causal():
+    env = ContinuousCartPoleSwingUpEnv()
+
+    assert (
+        env.get_transition_graph(5) == np.array([[0, 0, 0, 0], [1, 1, 1, 1], [1, 0, 0, 0], [1, 1, 1, 1], [1, 1, 1, 1]])
+    ).all()

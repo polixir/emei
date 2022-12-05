@@ -94,7 +94,8 @@ class BaseControlEnv(EmeiEnv):
         for i, (s, a) in enumerate(zip(obs, action)):
             s_augmented = np.append(s, self._extract_action(a))
             s_augmented_out = ODE_approximation(self._dsdt, s_augmented, self.real_time_scale, self.freq_rate)
-            next_obs[i] = s_augmented_out[: len(self.state)]
+            self.state = s_augmented_out[: len(self.state)]
+            next_obs[i] = self.current_obs
         self.unfreeze()
 
         return next_obs
