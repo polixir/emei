@@ -43,7 +43,7 @@ def get_params_str(params: dict):
 
 class OfflineEnv(gym.Env):
     def __init__(self, env_params: Dict[str, Union[str, int, float]]):
-        self.env_name = self.__class__.__name__[:-3]
+        self.env_name = self.__class__.__name__[:-3] + "-v0"
         self.env_params = env_params
 
         self._offline_dataset_urls = {}
@@ -111,7 +111,9 @@ class OfflineEnv(gym.Env):
         return dataset_filepath
 
     def get_dataset(self, dataset_name: str) -> Dict[(str, np.ndarray)]:
-        assert dataset_name in self._offline_dataset_urls
+        assert (
+            dataset_name in self._offline_dataset_urls
+        ), "your `dataset_name` is not in the list, " "choose one from the list please: {}".format(self._offline_dataset_urls)
 
         url = self._offline_dataset_urls[dataset_name]
         h5path = self.download_dataset(url)
