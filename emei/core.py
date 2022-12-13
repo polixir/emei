@@ -10,10 +10,7 @@ import numpy as np
 from tqdm import tqdm
 import urllib.request
 
-from emei.offline_info import URL_INFOS
-
-DATASET_PATH = pathlib.Path.home() / ".emei" / "offline_data"
-
+from emei.offline_info import URL_INFOS, DATASET_PATH
 
 class Freezable:
     def __init__(self):
