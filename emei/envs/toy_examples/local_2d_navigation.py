@@ -3,7 +3,6 @@ from typing import Optional
 from gym import spaces
 import numpy as np
 import matplotlib.pyplot as plt
-from IPython.display import clear_output
 
 from emei.core import EmeiEnv
 

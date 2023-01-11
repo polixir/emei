@@ -19,12 +19,12 @@ class BaseCartPoleEnv(BaseControlEnv):
             freq_rate=freq_rate, real_time_scale=real_time_scale, integrator=integrator, **kwargs
         )
 
-        self.gravity = 9.8
-        self.mass_cart = 1.0
-        self.mass_pole = 0.1
+        self.gravity = kwargs.get("gravity", 9.8)
+        self.mass_cart = kwargs.get("mass_cart", 1.0)
+        self.mass_pole = kwargs.get("mass_pole", 0.1)
         self.total_mass = self.mass_pole + self.mass_cart
-        self.length = 0.5  # actually half the pole's length
-        self.force_mag = 10.0
+        self.length = kwargs.get("length", 0.5)  # actually half the pole's length
+        self.force_mag = kwargs.get("force_mag", 10.0)
 
         # Angle at which to fail the episode
         self.theta_threshold_radians = 12 * 2 * math.pi / 360

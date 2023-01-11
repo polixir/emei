@@ -12,7 +12,11 @@ class BaseControlEnv(EmeiEnv):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
 
     def __init__(
-        self, freq_rate: int = 1, real_time_scale: float = 0.02, integrator: str = "euler", render_mode: Optional[str] = None
+        self, freq_rate: int = 1,
+            real_time_scale: float = 0.02,
+            integrator: str = "euler",
+            render_mode: Optional[str] = None,
+            **kwargs
     ):
         self.freq_rate = freq_rate
         self.real_time_scale = real_time_scale
@@ -27,7 +31,9 @@ class BaseControlEnv(EmeiEnv):
         self.isopen = True
         self.state = np.empty(0, dtype=np.float32)
 
-        EmeiEnv.__init__(self, env_params=dict(freq_rate=freq_rate, real_time_scale=real_time_scale, integrator=integrator))
+        env_params = dict(freq_rate=freq_rate, real_time_scale=real_time_scale, integrator=integrator)
+        env_params.update(kwargs)
+        EmeiEnv.__init__(self, env_params=env_params)
 
     def freeze(self) -> None:
         self.frozen_state = self.state.copy()

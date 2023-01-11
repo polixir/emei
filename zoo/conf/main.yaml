@@ -1,5 +1,5 @@
 defaults:
-  - task: BIPS
+  - task: continuous_cart_pole_swingup
   - algorithm: sac
   - _self_
 
