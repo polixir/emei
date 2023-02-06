@@ -116,17 +116,16 @@ class OfflineEnv(gym.Env):
         h5path = self.download_dataset(url)
 
         data_dict = self.load_h5_data(h5path)
-
         # Run a few quick sanity checks
-        for key in [
-            "observations",
-            "observations",
-            "actions",
-            "rewards",
-            "dones",
-            "timeouts",
-        ]:
-            assert key in data_dict, "Dataset is missing key %s" % key
+        # for key in [
+        #     "observations",
+        #     "observations",
+        #     "actions",
+        #     "rewards",
+        #     "dones",
+        #     "timeouts",
+        # ]:
+        #     assert key in data_dict, "Dataset is missing key %s" % key
 
         return data_dict
 

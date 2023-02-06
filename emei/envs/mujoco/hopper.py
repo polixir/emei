@@ -16,24 +16,24 @@ DEFAULT_CAMERA_CONFIG = {
 
 class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
     def __init__(
-        self,
-        freq_rate: int = 4,
-        real_time_scale: float = 0.002,
-        integrator: str = "rk4",
-        # noise
-        init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
-        obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
-        # reward mech
-        forward_reward_weight: float = 1.0,
-        ctrl_cost_weight: float = 1e-3,
-        healthy_reward: float = 1.0,
-        # termination mech
-        terminate_when_unhealthy: bool = True,
-        # range
-        healthy_state_range: Tuple[float, float] = (-100.0, 100.0),
-        healthy_z_range: Tuple[float, float] = (0.7, float("inf")),
-        healthy_angle_range: Tuple[float, float] = (-0.2, 0.2),
-        **kwargs
+            self,
+            freq_rate: int = 1,
+            real_time_scale: float = 0.01,
+            integrator: str = "eular",
+            # noise
+            init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
+            obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
+            # reward mech
+            forward_reward_weight: float = 1.0,
+            ctrl_cost_weight: float = 1e-3,
+            healthy_reward: float = 1.0,
+            # termination mech
+            terminate_when_unhealthy: bool = True,
+            # range
+            healthy_state_range: Tuple[float, float] = (-100.0, 100.0),
+            healthy_z_range: Tuple[float, float] = (0.7, float("inf")),
+            healthy_angle_range: Tuple[float, float] = (-0.2, 0.2),
+            **kwargs
     ):
         utils.EzPickle.__init__(
             self,
@@ -89,7 +89,6 @@ class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
         healthy_angle = np.logical_and(min_angle < angle, angle < max_angle)
 
         is_healthy = np.logical_and(healthy_state, healthy_z, healthy_angle)
-
         return is_healthy
 
     def get_batch_reward(self, next_obs, obs=None, action=None, next_state=None, state=None):
@@ -102,5 +101,5 @@ class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
         return rewards.reshape([next_obs.shape[0], 1])
 
     def get_batch_terminal(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        terminals = ~np.logical_or(self.is_healthy(next_obs), self._terminate_when_unhealthy)
+        terminals = np.logical_and(~self.is_healthy(next_obs), self._terminate_when_unhealthy)
         return terminals.reshape([next_obs.shape[0], 1])
