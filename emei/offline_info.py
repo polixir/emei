@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 
 EMEI_PATH = pathlib.Path.home() / ".emei"
 DATASET_PATH = EMEI_PATH / "offline_data"
-ROOT_URL = r"https://github.com/FrankTianTT/emei/raw/dev/offline_data"
+ROOT_URL = r"https://github.com/FrankTianTT/emei/tree/offline-data"
 
 DATASETS = [
     "uniform",
