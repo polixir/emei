@@ -64,7 +64,12 @@ class BaseCartPoleEnv(BaseControlEnv):
     def current_obs(self):
         state = self.state.copy()
         state[1] = (state[1] + np.pi) % (2 * np.pi) - np.pi
-        return state
+        return state.astype(np.float32)
+
+    @property
+    def extra_obs(self):
+        state = self.state.copy()
+        return state[1].astype(np.float32)
 
     def draw(self):
         world_width = self.x_threshold * 2
@@ -182,3 +187,13 @@ class ContinuousCartPoleSwingUpEnv(CartPoleSwingUpEnv):
 
     def _extract_action(self, action):
         return self.force_mag * action[0]
+
+
+if __name__ == '__main__':
+    env = ContinuousCartPoleSwingUpEnv()
+    obs, info = env.reset()
+
+    while True:
+        action = env.action_space.sample()
+        obs, reward, terminal, truncated, info = env.step(action)
+        print(obs, info)

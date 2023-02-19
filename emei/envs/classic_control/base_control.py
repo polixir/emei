@@ -50,7 +50,7 @@ class BaseControlEnv(EmeiEnv):
         super().reset(seed=seed)
 
         self.state = self.get_batch_init_state(1)[0]
-        return self.state.copy(), {}
+        return self.current_obs, {}
 
     @abstractmethod
     def _extract_action(self, action: Union[int, np.ndarray]) -> np.ndarray:
@@ -68,6 +68,10 @@ class BaseControlEnv(EmeiEnv):
     def current_obs(self):
         return self.state.copy().astype(np.float32)
 
+    @property
+    def extra_obs(self):
+        return np.empty(0)
+
     def step(self, action: Union[int, np.ndarray]):
         if isinstance(action, int):
             action = np.asarray(action)
@@ -76,21 +80,23 @@ class BaseControlEnv(EmeiEnv):
         assert self.action_space.contains(action), err_msg
         assert self.state is not None, "Call reset before using step method."
 
-        pre_obs = self.current_obs
+        info = {}
+        obs = self.current_obs
+        info["extra_obs"] = self.extra_obs
 
         x_action = self._extract_action(action)
         s_augmented = np.append(self.state, x_action)
         s_augmented_out = ODE_approximation(self._dsdt, s_augmented, self.real_time_scale, self.freq_rate)
         self.state = s_augmented_out[: len(self.state)]
 
-        obs = self.current_obs
+        next_obs = self.current_obs
+        info["next_extra_obs"] = self.extra_obs
 
-        reward = self.get_batch_reward(obs[None], pre_obs[None], action[None])[0, 0]
-        terminal = self.get_batch_terminal(obs[None], pre_obs[None], action[None])[0, 0]
+        reward = self.get_batch_reward(next_obs[None], obs[None], action[None])[0, 0]
+        terminal = self.get_batch_terminal(next_obs[None], obs[None], action[None])[0, 0]
         truncated = False
-        info = {}
 
-        return obs, reward, terminal, truncated, info
+        return next_obs, reward, terminal, truncated, info
 
     def get_batch_next_obs(self, obs, action):
         self.freeze()

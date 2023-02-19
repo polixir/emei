@@ -4,6 +4,7 @@ import json
 from typing import Union, Optional
 import pathlib
 
+import numpy
 import omegaconf
 from collections import defaultdict
 import gym
@@ -13,14 +14,16 @@ import numpy as np
 from stable_baselines3.common.base_class import BaseAlgorithm
 
 
-def get_replay_buffer(model):
+def get_replay_buffer(model, saved_info):
     replay_buffer = model.replay_buffer
     unscale_action = model.policy.unscale_action
-    pos = replay_buffer.pos
+    pos = replay_buffer.buffer_size if replay_buffer.full else replay_buffer.pos
     # SAC of sb3 will scale action automatically, so un-scale it manually.
     samples = {
         "observations": replay_buffer.observations[:pos].reshape(pos, -1),
+        "extra_obs": numpy.array(saved_info["extra_obs"]).reshape(pos, -1),
         "next_observations": replay_buffer.next_observations[:pos].reshape(pos, -1),
+        "next_extra_obs": numpy.array(saved_info["next_extra_obs"]).reshape(pos, -1),
         "actions": unscale_action(replay_buffer.actions[:pos].reshape(pos, -1)),
         "rewards": replay_buffer.rewards[:pos].reshape(pos),
         "dones": replay_buffer.dones[:pos].reshape(pos),
@@ -31,10 +34,10 @@ def get_replay_buffer(model):
 
 
 def rollout(
-    env: gym.Env,
-    total_sample_num: int,
-    agent: Optional[BaseAlgorithm] = None,
-    deterministic: bool = False,
+        env: gym.Env,
+        total_sample_num: int,
+        agent: Optional[BaseAlgorithm] = None,
+        deterministic: bool = False,
 ):
     samples = defaultdict(list)
     current_sample_num = 0
@@ -49,7 +52,7 @@ def rollout(
             episode_reward = 0
             episode_length = 0
             done = False
-            obs, _ = env.reset()
+            obs, info = env.reset()
 
             while not done:
                 if agent is not None:
@@ -60,7 +63,9 @@ def rollout(
                 done = terminated or truncated
 
                 samples["observations"].append(obs)
+                samples["extra_obs"].append(info["extra_obs"])
                 samples["next_observations"].append(next_obs)
+                samples["next_extra_obs"].append(info["next_extra_obs"])
                 samples["actions"].append(action)
                 samples["rewards"].append(reward)
                 samples["dones"].append(float(done))

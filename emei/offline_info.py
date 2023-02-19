@@ -27,7 +27,7 @@ def update_url_info():
     )
 
     for env_name_element in env_name_elements:
-        env_name = env_name_element.text
+        env_name = env_name_element.text if "/" not in env_name_element.text else env_name_element.text.split("/")[0]
         url_infos[env_name] = {}
 
         env_text = requests.get("{}/{}".format(ROOT_URL, env_name)).text
@@ -40,7 +40,7 @@ def update_url_info():
 
             for dataset in DATASETS:
                 url_infos[env_name][params][dataset] = "{}/{}/{}/{}.h5".format(
-                    ROOT_URL,
+                    ROOT_URL.replace("/tree/", "/raw/"),
                     env_name,
                     params.replace("=", "%3D"),
                     dataset,
@@ -56,3 +56,7 @@ if not (EMEI_PATH / "url_infos.json").exists():
 
 with open(EMEI_PATH / "url_infos.json", "r") as f:
     URL_INFOS = json.load(f)
+
+
+if __name__ == '__main__':
+    update_url_info()

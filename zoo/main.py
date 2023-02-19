@@ -1,8 +1,9 @@
-from typing import cast
+from typing import cast, Optional
+from collections import defaultdict
 
 import gym
 import hydra
-from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
+from stable_baselines3.common.callbacks import BaseCallback, EvalCallback, CallbackList
 from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.logger import configure
 from omegaconf import OmegaConf
@@ -12,7 +13,13 @@ from emei.core import get_params_str
 from zoo.util import rollout, save_as_h5, get_replay_buffer, save_rollout_info
 
 
-def rollout_and_save(env, sample_num, model, deterministic, save_name):
+def rollout_and_save(
+        env,
+        sample_num,
+        model,
+        deterministic,
+        save_name
+):
     samples, rollout_info = rollout(env, sample_num, model, deterministic)
     save_as_h5(samples, "{}.h5".format(save_name))
     save_rollout_info(rollout_info, save_name)
@@ -20,16 +27,31 @@ def rollout_and_save(env, sample_num, model, deterministic, save_name):
     print("{}: {}".format(save_name, rollout_info))
 
 
+class SaveExtraObsCallback(BaseCallback):
+    def __init__(
+            self,
+            verbose: int = 0,
+    ):
+        super().__init__(verbose=verbose)
+        self.saved_info = defaultdict(list)
+
+    def _on_step(self) -> bool:
+        self.saved_info["extra_obs"].extend([info['extra_obs'] for info in self.locals["infos"]])
+        self.saved_info["next_extra_obs"].extend([info['next_extra_obs'] for info in self.locals["infos"]])
+        return True
+
+
 class SaveMediumAndExpertData(BaseCallback):
     def __init__(
-        self,
-        rollout_env: gym.Env,
-        algorithm_name: str,
-        medium_reward_threshold: float,
-        expert_reward_threshold: float,
-        medium_sample_num: int,
-        expert_sample_num: int,
-        verbose: int = 0,
+            self,
+            rollout_env: gym.Env,
+            algorithm_name: str,
+            medium_reward_threshold: float,
+            expert_reward_threshold: float,
+            medium_sample_num: int,
+            expert_sample_num: int,
+            save_extra_obs_callback: SaveExtraObsCallback,
+            verbose: int = 0,
     ):
         super().__init__(verbose=verbose)
         self.env = rollout_env
@@ -38,6 +60,8 @@ class SaveMediumAndExpertData(BaseCallback):
         self.expert_reward_threshold = expert_reward_threshold
         self.medium_sample_num = medium_sample_num
         self.expert_sample_num = expert_sample_num
+
+        self.save_extra_obs_callback = save_extra_obs_callback
 
         self.reached_medium = False
         self.reached_expert = False
@@ -48,7 +72,10 @@ class SaveMediumAndExpertData(BaseCallback):
         best_mean_reward = float(self.parent.best_mean_reward)
         if best_mean_reward > self.medium_reward_threshold and not self.reached_medium:
             self.model.save("SAC-medium-agent")
-            save_as_h5(get_replay_buffer(self.model), self.algorithm_name + "-medium-replay.h5")
+            save_as_h5(
+                get_replay_buffer(self.model, self.save_extra_obs_callback.saved_info),
+                self.algorithm_name + "-medium-replay.h5"
+            )
             rollout_and_save(
                 self.env,
                 self.medium_sample_num,
@@ -61,7 +88,10 @@ class SaveMediumAndExpertData(BaseCallback):
 
         if best_mean_reward > self.expert_reward_threshold and not self.reached_expert:
             self.model.save("SAC-expert-agent")
-            save_as_h5(get_replay_buffer(self.model), self.algorithm_name + "-expert-replay.h5")
+            save_as_h5(
+                get_replay_buffer(self.model, self.save_extra_obs_callback.saved_info),
+                self.algorithm_name + "-expert-replay.h5"
+            )
             rollout_and_save(
                 self.env,
                 self.expert_sample_num,
@@ -96,6 +126,7 @@ def main(cfg):
     eval_env.reset(seed=cfg.seed)
     eval_env.action_space.seed(seed=cfg.seed)
 
+    save_extra_obs_callback = SaveExtraObsCallback()
     save_offline_callback = SaveMediumAndExpertData(
         eval_env,
         algorithm_name=cfg.algorithm.name,
@@ -103,6 +134,7 @@ def main(cfg):
         expert_reward_threshold=cfg.task.expert_reward,
         medium_sample_num=cfg.task.medium_sample_num,
         expert_sample_num=cfg.task.expert_sample_num,
+        save_extra_obs_callback=save_extra_obs_callback,
     )
     eval_callback = EvalCallback(
         eval_env,
@@ -128,7 +160,10 @@ def main(cfg):
 
     logger = configure("tb", format_strings=["tensorboard"])
     model.set_logger(logger)
-    model.learn(total_timesteps=cfg.task.num_steps, callback=eval_callback)
+    model.learn(
+        total_timesteps=cfg.task.num_steps,
+        callback=CallbackList([eval_callback, save_extra_obs_callback])
+    )
 
 
 if __name__ == "__main__":

@@ -127,13 +127,6 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
             else:
                 setattr(self.viewer.cam, key, value)
 
-    def reset_model(self):
-        pos, vel = self.get_batch_init_state(1)
-        self.set_state(pos[0], vel[0])
-
-        observation = np.concatenate([pos[0], vel[0]])
-        return observation
-
     def get_batch_init_state(self, batch_size):
         origin_pos = np.tile(self.init_qpos[None, :], [batch_size, 1])
         origin_vel = np.tile(self.init_qvel[None, :], [batch_size, 1])
@@ -154,17 +147,42 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
     def current_obs(self):
         return self.state_vector()
 
-    def step(self, action):
-        pre_obs = self.current_obs
-        self.do_simulation(action, self.freq_rate)
-        obs = self.current_obs
+    @property
+    def extra_obs(self):
+        return np.empty(0)
 
-        reward = self.get_batch_reward(obs[None], pre_obs[None], action[None])[0, 0]
-        terminal = self.get_batch_terminal(obs[None], pre_obs[None], action[None])[0, 0]
-        truncated = False
+    def step(self, action):
         info = {}
 
+        obs = self.current_obs
+        info["extra_obs"] = self.extra_obs
+        self.do_simulation(action, self.freq_rate)
+
+        next_obs = self.current_obs
+        info["next_extra_obs"] = self.extra_obs
+
+        reward = self.get_batch_reward(next_obs[None], obs[None], action[None])[0, 0]
+        terminal = self.get_batch_terminal(next_obs[None], obs[None], action[None])[0, 0]
+        truncated = False
+
         return obs, reward, terminal, truncated, info
+
+    def reset(
+        self,
+        *,
+        seed: Optional[int] = None,
+        options: Optional[dict] = None,
+    ):
+        super().reset(seed=seed)
+
+        self._reset_simulation()
+
+        pos, vel = self.get_batch_init_state(1)
+        self.set_state(pos[0], vel[0])
+
+        if self.render_mode == "human":
+            self.render()
+        return self.current_obs, {}
 
     def get_batch_next_obs(self, obs, action):
         self.freeze()
