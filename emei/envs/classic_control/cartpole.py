@@ -60,21 +60,19 @@ class BaseCartPoleEnv(BaseControlEnv):
     def get_batch_init_state(self, batch_size):
         return self.np_random.uniform(low=-0.05, high=0.05, size=(batch_size, 4)).astype(np.float32)
 
-    @property
-    def current_obs(self):
-        state = self.state.copy()
-        state[1] = (state[1] + np.pi) % (2 * np.pi) - np.pi
-        return state.astype(np.float32)
-
-    @property
-    def extra_obs(self):
-        state = self.state.copy()
-        return state[1:2].astype(np.float32)
+    def state2obs(self, batch_state):
+        batch_state = batch_state.copy()
+        batch_state[:, 1] = (batch_state[:, 1] + np.pi) % (2 * np.pi) - np.pi
+        return batch_state
 
     def obs2state(self, batch_obs, batch_extra_obs):
         state = batch_obs.copy()
         state[:, 1:2] = batch_extra_obs[:]
         return state
+
+    def get_batch_extra_obs(self, batch_state):
+        batch_state = batch_state.copy()
+        return batch_state[:, 1].astype(np.float32)
 
     def draw(self):
         world_width = self.x_threshold * 2
@@ -194,11 +192,14 @@ class ContinuousCartPoleSwingUpEnv(CartPoleSwingUpEnv):
         return self.force_mag * action[0]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     env = ContinuousCartPoleSwingUpEnv()
     obs, info = env.reset()
 
-    while True:
+    for i in range(10000):
         action = env.action_space.sample()
         obs, reward, terminal, truncated, info = env.step(action)
-        print(obs, info)
+
+    obs, reward, terminal, truncated, info = env.step(np.ones(1, dtype=np.float32))
+    state = env.obs2state(obs[None], info["next_extra_obs"][None])[0]
+    print(obs, info, state)

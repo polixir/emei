@@ -132,40 +132,38 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
         origin_vel = np.tile(self.init_qvel[None, :], [batch_size, 1])
         return self.additive_gaussian_noise(origin_pos, origin_vel, self.init_noise_params)
 
-    def transform_state_to_obs(self, batch_state):
+    def state2obs(self, batch_state):
         pos, vel = batch_state
         return np.concatenate([pos, vel], axis=1)
 
-    def transform_obs_to_state(self, batch_obs):
+    def obs2state(self, batch_obs, batch_extra_obs):
         assert len(batch_obs.shape) == 2
         if batch_obs.shape[1] == (self.model.nq + self.model.nv,):
             return batch_obs[:, : self.model.nq], batch_obs[:, self.model.nq :]
         else:
             raise NotImplementedError
 
-    @property
-    def current_obs(self):
+    def get_current_state(self):
         return self.state_vector()
 
-    @property
-    def extra_obs(self):
-        return np.empty(0)
+    def get_batch_extra_obs(self, batch_state):
+        return batch_state.copy()
 
     def step(self, action):
         info = {}
 
-        obs = self.current_obs
-        info["extra_obs"] = self.extra_obs
+        state = self.get_current_state()
+        info["extra_obs"] = self.get_batch_extra_obs(state[None])[0]
         self.do_simulation(action, self.freq_rate)
 
-        next_obs = self.current_obs
-        info["next_extra_obs"] = self.extra_obs
+        next_state = self.get_current_state()
+        info["next_extra_obs"] = self.get_batch_extra_obs(next_state[None])[0]
 
-        reward = self.get_batch_reward(next_obs[None], obs[None], action[None])[0, 0]
-        terminal = self.get_batch_terminal(next_obs[None], obs[None], action[None])[0, 0]
+        reward = self.get_batch_reward(next_state[None], state[None], action[None])[0, 0]
+        terminal = self.get_batch_terminal(next_state[None], state[None], action[None])[0, 0]
         truncated = False
 
-        return obs, reward, terminal, truncated, info
+        return self.state2obs(next_state[None])[0], reward, terminal, truncated, info
 
     def reset(
         self,
@@ -173,7 +171,7 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
         seed: Optional[int] = None,
         options: Optional[dict] = None,
     ):
-        super().reset(seed=seed)
+        EmeiEnv.reset(self, seed=seed)
 
         self._reset_simulation()
 
@@ -182,7 +180,8 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
 
         if self.render_mode == "human":
             self.render()
-        return self.current_obs, {}
+        state = self.get_current_state()
+        return self.state2obs(state[None])[0], {}
 
     def get_batch_next_obs(self, obs, action):
         self.freeze()

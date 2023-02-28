@@ -12,6 +12,7 @@ import urllib.request
 
 from emei.offline_info import URL_INFOS, DATASET_PATH
 
+
 class Freezable:
     def __init__(self):
         self.frozen_state = None
@@ -168,25 +169,35 @@ class EmeiEnv(Freezable, OfflineEnv):
     def get_termination_mech_graph(self):
         return self._termination_mech_graph
 
-    def transform_state_to_obs(self, batch_state):
+    @abstractmethod
+    def state2obs(self, batch_state):
         return batch_state.copy()
 
-    def transform_obs_to_state(self, batch_obs):
+    @abstractmethod
+    def obs2state(self, batch_obs, batch_extra_obs):
         return batch_obs.copy()
+
+    @abstractmethod
+    def get_batch_extra_obs(self, batch_state):
+        return batch_state.copy()
+
+    @abstractmethod
+    def get_current_state(self):
+        pass
 
     @abstractmethod
     def get_batch_init_state(self, batch_size):
         raise NotImplementedError
 
     def get_batch_init_obs(self, batch_size):
-        return self.transform_state_to_obs(self.get_batch_init_state(batch_size=batch_size))
+        return self.state2obs(self.get_batch_init_state(batch_size=batch_size))
 
     @abstractmethod
-    def get_batch_reward(self, next_obs, obs=None, action=None, next_state=None, state=None):
+    def get_batch_reward(self, next_state, state=None, action=None):
         raise NotImplementedError
 
     @abstractmethod
-    def get_batch_terminal(self, next_obs, obs=None, action=None, next_state=None, state=None):
+    def get_batch_terminal(self, next_state, state=None, action=None):
         raise NotImplementedError
 
     @abstractmethod
