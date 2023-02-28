@@ -13,8 +13,8 @@ def test_hopper_fn():
     assert is_healthy.shape == (128,) and not np.any(is_healthy)
 
     reward = env.get_batch_reward(
-        next_obs=np.ones([128, 12]),
-        obs=np.ones([128, 12]),
+        next_state=np.ones([128, 12]),
+        state=np.ones([128, 12]),
         action=np.ones([128, 3]),
     )
     assert reward.shape == (128, 1)

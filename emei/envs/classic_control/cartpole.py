@@ -136,14 +136,14 @@ class CartPoleBalancingEnv(BaseCartPoleEnv):
     def _extract_action(self, action):
         return self.force_mag if action == 1 else -self.force_mag
 
-    def get_batch_terminal(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        x = next_obs[:, 0]
-        theta = self.get_absolute_theta(next_obs[:, 1])
+    def get_batch_terminal(self, next_state, state=None, action=None):
+        x = next_state[:, 0]
+        theta = self.get_absolute_theta(next_state[:, 1])
         notdone = (np.abs(theta) < self.theta_threshold_radians) & (np.abs(x) < self.x_threshold)
-        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
+        return np.logical_not(notdone).reshape([next_state.shape[0], 1])
 
-    def get_batch_reward(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        return np.ones([next_obs.shape[0], 1])
+    def get_batch_reward(self, next_state, state=None, action=None):
+        return np.ones([next_state.shape[0], 1])
 
 
 class CartPoleSwingUpEnv(BaseCartPoleEnv):
@@ -156,15 +156,15 @@ class CartPoleSwingUpEnv(BaseCartPoleEnv):
     def _extract_action(self, action):
         return self.force_mag if action == 1 else -self.force_mag
 
-    def get_batch_terminal(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        x = next_obs[:, 0]
+    def get_batch_terminal(self, next_state, state=None, action=None):
+        x = next_state[:, 0]
         notdone = np.abs(x) < self.x_threshold
-        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
+        return np.logical_not(notdone).reshape([next_state.shape[0], 1])
 
-    def get_batch_reward(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        theta = self.get_absolute_theta(next_obs[:, 1])
+    def get_batch_reward(self, next_state, state=None, action=None):
+        theta = self.get_absolute_theta(next_state[:, 1])
         rewards = (np.cos(theta) + 1) / 2
-        return rewards.reshape([next_obs.shape[0], 1])
+        return rewards.reshape([next_state.shape[0], 1])
 
     def get_absolute_theta(self, theta):
         return theta + np.pi

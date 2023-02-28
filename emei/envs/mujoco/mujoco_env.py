@@ -133,21 +133,20 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
         return self.additive_gaussian_noise(origin_pos, origin_vel, self.init_noise_params)
 
     def state2obs(self, batch_state):
-        pos, vel = batch_state
-        return np.concatenate([pos, vel], axis=1)
+        return batch_state.copy()
 
     def obs2state(self, batch_obs, batch_extra_obs):
         assert len(batch_obs.shape) == 2
         if batch_obs.shape[1] == (self.model.nq + self.model.nv,):
-            return batch_obs[:, : self.model.nq], batch_obs[:, self.model.nq :]
+            return batch_obs.copy()
         else:
             raise NotImplementedError
 
-    def get_current_state(self):
-        return self.state_vector()
-
     def get_batch_extra_obs(self, batch_state):
         return batch_state.copy()
+
+    def get_current_state(self):
+        return self.state_vector()
 
     def step(self, action):
         info = {}

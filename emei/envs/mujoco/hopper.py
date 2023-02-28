@@ -16,24 +16,24 @@ DEFAULT_CAMERA_CONFIG = {
 
 class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
     def __init__(
-            self,
-            freq_rate: int = 1,
-            real_time_scale: float = 0.01,
-            integrator: str = "eular",
-            # noise
-            init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
-            obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
-            # reward mech
-            forward_reward_weight: float = 1.0,
-            ctrl_cost_weight: float = 1e-3,
-            healthy_reward: float = 1.0,
-            # termination mech
-            terminate_when_unhealthy: bool = True,
-            # range
-            healthy_state_range: Tuple[float, float] = (-100.0, 100.0),
-            healthy_z_range: Tuple[float, float] = (0.7, float("inf")),
-            healthy_angle_range: Tuple[float, float] = (-0.2, 0.2),
-            **kwargs
+        self,
+        freq_rate: int = 1,
+        real_time_scale: float = 0.01,
+        integrator: str = "euler",
+        # noise
+        init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
+        obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
+        # reward mech
+        forward_reward_weight: float = 1.0,
+        ctrl_cost_weight: float = 1e-3,
+        healthy_reward: float = 1.0,
+        # termination mech
+        terminate_when_unhealthy: bool = True,
+        # range
+        healthy_state_range: Tuple[float, float] = (-100.0, 100.0),
+        healthy_z_range: Tuple[float, float] = (0.7, float("inf")),
+        healthy_angle_range: Tuple[float, float] = (-0.2, 0.2),
+        **kwargs
     ):
         utils.EzPickle.__init__(
             self,
@@ -76,9 +76,20 @@ class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
             **kwargs
         )
 
-    def is_healthy(self, next_obs):
-        z, angle = next_obs[:, 1:3].T
-        state = next_obs[:, 2:]
+    def state2obs(self, batch_state):
+        batch_obs = batch_state[:, 1:].copy()
+        return batch_obs
+
+    def obs2state(self, batch_obs, batch_extra_obs):
+        batch_state = np.concatenate([batch_extra_obs, batch_obs], axis=1)
+        return batch_state
+
+    def get_batch_extra_obs(self, batch_state):
+        return batch_state[:, 0:1].copy()
+
+    def is_healthy(self, next_state):
+        z, angle = next_state[:, 1:3].T
+        state = next_state[:, 2:]
 
         min_state, max_state = self._healthy_state_range
         min_z, max_z = self._healthy_z_range
@@ -91,15 +102,28 @@ class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
         is_healthy = np.logical_and(healthy_state, healthy_z, healthy_angle)
         return is_healthy
 
-    def get_batch_reward(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        x_velocity = (next_obs[:, 0] - obs[:, 0]) / self.dt
+    def get_batch_reward(self, next_state, state=None, action=None):
+        x_velocity = (next_state[:, 0] - state[:, 0]) / self.dt
         forward_reward = self._forward_reward_weight * x_velocity
         control_cost = self._ctrl_cost_weight * np.sum(np.square(action))
-        healthy_reward = np.logical_or(self.is_healthy(next_obs), self._terminate_when_unhealthy) * self._healthy_reward
+        healthy_reward = np.logical_or(self.is_healthy(next_state), self._terminate_when_unhealthy) * self._healthy_reward
 
         rewards = healthy_reward + forward_reward - control_cost
-        return rewards.reshape([next_obs.shape[0], 1])
+        return rewards.reshape([next_state.shape[0], 1])
 
-    def get_batch_terminal(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        terminals = np.logical_and(~self.is_healthy(next_obs), self._terminate_when_unhealthy)
-        return terminals.reshape([next_obs.shape[0], 1])
+    def get_batch_terminal(self, next_state, state=None, action=None):
+        terminals = np.logical_and(~self.is_healthy(next_state), self._terminate_when_unhealthy)
+        return terminals.reshape([next_state.shape[0], 1])
+
+
+if __name__ == "__main__":
+    env = HopperRunningEnv()
+    obs, info = env.reset()
+
+    for i in range(100):
+        action = env.action_space.sample()
+        obs, reward, terminal, truncated, info = env.step(action)
+
+    obs, reward, terminal, truncated, info = env.step(env.action_space.sample())
+    state = env.obs2state(obs[None], info["next_extra_obs"][None])[0]
+    print(obs, info, state)

@@ -79,13 +79,13 @@ class ReboundInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
             **kwargs
         )
 
-    def get_batch_reward(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        return np.ones([next_obs.shape[0], 1])
+    def get_batch_reward(self, next_state=None, state=None, action=None):
+        return np.ones([next_state.shape[0], 1])
 
-    def get_batch_terminal(self, next_obs: np.ndarray, obs=None, action=None, next_state=None, state=None):
-        y = np.cos(next_obs[:, 1])
-        notdone = (y >= 0.9) & np.isfinite(next_obs).all(axis=1)
-        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
+    def get_batch_terminal(self, next_state: np.ndarray, state=None, action=None):
+        y = np.cos(next_state[:, 1])
+        notdone = (y >= 0.9) & np.isfinite(next_state).all(axis=1)
+        return np.logical_not(notdone).reshape([next_state.shape[0], 1])
 
 
 class BoundaryInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
@@ -109,15 +109,15 @@ class BoundaryInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
             **kwargs
         )
 
-    def get_batch_reward(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        return np.ones([next_obs.shape[0], 1])
+    def get_batch_reward(self, next_state, state=None, action=None):
+        return np.ones([next_state.shape[0], 1])
 
-    def get_batch_terminal(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        y = np.cos(next_obs[:, 1])
-        x = next_obs[:, 0]
+    def get_batch_terminal(self, next_state, state=None, action=None):
+        y = np.cos(next_state[:, 1])
+        x = next_state[:, 0]
         x_left, x_right = self.model.jnt_range[0]
-        notdone = (y >= 0) & np.logical_and(x_left < x, x < x_right) & np.isfinite(next_obs).all(axis=1)
-        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
+        notdone = (y >= 0) & np.logical_and(x_left < x, x < x_right) & np.isfinite(next_state).all(axis=1)
+        return np.logical_not(notdone).reshape([next_state.shape[0], 1])
 
 
 class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
@@ -145,14 +145,14 @@ class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
         self.model.jnt_range[1] = [-np.inf, np.inf]
         self.model.body_quat[2] = [0, 0, 1, 0]
 
-    def get_batch_reward(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        y = np.cos(next_obs[:, 1])
+    def get_batch_reward(self, next_state, state=None, action=None):
+        y = np.cos(next_state[:, 1])
         rewards = (1 - y) / 2
-        return rewards.reshape([next_obs.shape[0], 1])
+        return rewards.reshape([next_state.shape[0], 1])
 
-    def get_batch_terminal(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        notdone = np.isfinite(next_obs).all(axis=1)
-        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
+    def get_batch_terminal(self, next_state, state=None, action=None):
+        notdone = np.isfinite(next_state).all(axis=1)
+        return np.logical_not(notdone).reshape([next_state.shape[0], 1])
 
 
 class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
@@ -180,16 +180,16 @@ class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
         self.model.jnt_range[1] = [-np.inf, np.inf]
         self.model.body_quat[2] = [0, 0, 1, 0]
 
-    def get_batch_reward(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        y = np.cos(next_obs[:, 1])
+    def get_batch_reward(self, next_state, state=None, action=None):
+        y = np.cos(next_state[:, 1])
         rewards = (1 - y) / 2
-        return rewards.reshape([next_obs.shape[0], 1])
+        return rewards.reshape([next_state.shape[0], 1])
 
-    def get_batch_terminal(self, next_obs, obs=None, action=None, next_state=None, state=None):
-        x = next_obs[:, 0]
+    def get_batch_terminal(self, next_state, state=None, action=None):
+        x = next_state[:, 0]
         x_left, x_right = self.model.jnt_range[0]
-        notdone = np.logical_and(x_left < x, x < x_right) & np.isfinite(next_obs).all(axis=1)
-        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
+        notdone = np.logical_and(x_left < x, x < x_right) & np.isfinite(next_state).all(axis=1)
+        return np.logical_not(notdone).reshape([next_state.shape[0], 1])
 
 
 if __name__ == "__main__":
