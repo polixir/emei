@@ -69,7 +69,12 @@ class BaseCartPoleEnv(BaseControlEnv):
     @property
     def extra_obs(self):
         state = self.state.copy()
-        return state[1].astype(np.float32)
+        return state[1:2].astype(np.float32)
+
+    def obs2state(self, batch_obs, batch_extra_obs):
+        state = batch_obs.copy()
+        state[:, 1:2] = batch_extra_obs[:]
+        return state
 
     def draw(self):
         world_width = self.x_threshold * 2

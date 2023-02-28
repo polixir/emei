@@ -72,6 +72,9 @@ class BaseControlEnv(EmeiEnv):
     def extra_obs(self):
         return np.empty(0)
 
+    def obs2state(self, batch_obs, batch_extra_obs):
+        return batch_obs
+
     def step(self, action: Union[int, np.ndarray]):
         if isinstance(action, int):
             action = np.asarray(action)
