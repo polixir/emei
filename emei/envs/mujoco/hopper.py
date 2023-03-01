@@ -62,7 +62,7 @@ class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
         self._healthy_z_range = healthy_z_range
         self._healthy_angle_range = healthy_angle_range
 
-        observation_space = Box(low=-np.inf, high=np.inf, shape=(12,), dtype=np.float64)
+        observation_space = Box(low=-np.inf, high=np.inf, shape=(11,), dtype=np.float64)
         EmeiMujocoEnv.__init__(
             self,
             model_path="hopper.xml",
@@ -117,12 +117,13 @@ class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
 
 
 if __name__ == "__main__":
-    env = HopperRunningEnv()
+    env = HopperRunningEnv(render_mode="human")
     obs, info = env.reset()
 
     for i in range(100):
         action = env.action_space.sample()
         obs, reward, terminal, truncated, info = env.step(action)
+        env.render()
 
     obs, reward, terminal, truncated, info = env.step(env.action_space.sample())
     state = env.obs2state(obs[None], info["next_extra_obs"][None])[0]
