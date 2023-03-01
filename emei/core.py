@@ -13,10 +13,18 @@ import urllib.request
 from emei.offline_info import URL_INFOS, DATASET_PATH
 
 
-class Freezable:
+class FreezeMixin:
     def __init__(self):
         self.frozen_state = None
         self.frozen = False
+
+    @abstractmethod
+    def freeze_state(self):
+        pass
+
+    @abstractmethod
+    def unfreeze_state(self):
+        pass
 
     def freeze(self):
         """
@@ -24,6 +32,7 @@ class Freezable:
         :return: None
         """
         assert not self.frozen, "env has frozen"
+        self.freeze_state()
         self.frozen = True
 
     def unfreeze(self):
@@ -32,6 +41,7 @@ class Freezable:
         :return: None
         """
         assert self.frozen, "env has unfrozen"
+        self.unfreeze_state()
         self.frozen = False
 
 
@@ -110,8 +120,9 @@ class OfflineEnv(gym.Env):
 
     def get_dataset(self, dataset_name: str) -> Dict[(str, np.ndarray)]:
         assert (
-            dataset_name in self._offline_dataset_urls
-        ), "your `dataset_name` is not in the list, " "choose one from the list please: {}".format(self._offline_dataset_urls)
+                dataset_name in self._offline_dataset_urls
+        ), "your `dataset_name` is not in the list, " "choose one from the list please: {}".format(
+            self._offline_dataset_urls)
 
         url = self._offline_dataset_urls[dataset_name]
         h5path = self.download_dataset(url)
@@ -131,12 +142,12 @@ class OfflineEnv(gym.Env):
         return data_dict
 
 
-class EmeiEnv(Freezable, OfflineEnv):
+class EmeiEnv(FreezeMixin, OfflineEnv):
     def __init__(self, env_params: Dict[str, Union[str, int, float]]):
         """
         Abstract class for all Emei environments to better support model-based RL and offline RL.
         """
-        Freezable.__init__(self)
+        FreezeMixin.__init__(self)
         OfflineEnv.__init__(self, env_params=env_params)
         self._transition_graph = None
         self._reward_mech_graph = None

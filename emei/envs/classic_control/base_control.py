@@ -36,10 +36,10 @@ class BaseControlEnv(EmeiEnv):
         env_params.update(kwargs)
         EmeiEnv.__init__(self, env_params=env_params)
 
-    def freeze(self) -> None:
+    def freeze_state(self) -> None:
         self.frozen_state = self.state.copy()
 
-    def unfreeze(self) -> None:
+    def unfreeze_state(self) -> None:
         self.state = self.frozen_state.copy()
 
     def reset(
@@ -110,16 +110,16 @@ class BaseControlEnv(EmeiEnv):
     def get_batch_next_obs(self, obs, action):
         self.freeze()
 
-        next_obs = np.empty(shape=obs.shape)
+        next_state = np.empty(shape=obs.shape)
 
         for i, (s, a) in enumerate(zip(obs, action)):
             s_augmented = np.append(s, self._extract_action(a))
             s_augmented_out = ODE_approximation(self._dsdt, s_augmented, self.real_time_scale, self.freq_rate)
             self.state = s_augmented_out[: len(self.state)]
-            next_obs[i] = self.current_obs
+            next_state[i] = self.get_current_state()
         self.unfreeze()
 
-        return next_obs
+        return self.state2obs(next_state)
 
     def render(self):
         if self.render_mode is None:

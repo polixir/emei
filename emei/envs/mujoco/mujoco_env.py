@@ -111,12 +111,10 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
     def _update_model(self):
         pass
 
-    def freeze(self):
-        self.frozen = True
+    def freeze_state(self):
         self.frozen_state = (self.data.qpos.copy(), self.data.qvel.copy())
 
-    def unfreeze(self):
-        self.frozen = False
+    def unfreeze_state(self):
         self.set_state(*self.frozen_state)
 
     def viewer_setup(self):
@@ -185,15 +183,15 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
     def get_batch_next_obs(self, obs, action):
         self.freeze()
 
-        next_obs = np.empty(shape=obs.shape)
+        next_state = np.empty(shape=obs.shape)
 
         for i, o in enumerate(obs):
             self.set_state(o[: self.model.nq], o[self.model.nq :])
             self.do_simulation(action[i], self.freq_rate)
-            next_obs[i] = self.current_obs
+            next_state[i] = self.get_current_state()
         self.unfreeze()
 
-        return next_obs
+        return self.state2obs(next_state)
 
     def get_euler_pos(
         self,
