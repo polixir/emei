@@ -45,7 +45,7 @@ class BaseInvertedPendulumEnv(EmeiMujocoEnv, utils.EzPickle):
 
     def state2obs(self, batch_state):
         batch_state = batch_state.copy()
-        batch_state[:, 1] = (batch_state[:, 1] + np.pi) % (2 * np.pi) - np.pi
+        batch_state[:, 1:2] = (batch_state[:, 1:2] + np.pi) % (2 * np.pi) - np.pi
         return batch_state
 
     def obs2state(self, batch_obs, batch_extra_obs):
@@ -55,7 +55,7 @@ class BaseInvertedPendulumEnv(EmeiMujocoEnv, utils.EzPickle):
 
     def get_batch_extra_obs(self, batch_state):
         batch_state = batch_state.copy()
-        return batch_state[:, 1].astype(np.float32)
+        return batch_state[:, 1:2].astype(np.float32)
 
 
 class ReboundInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):

@@ -8,31 +8,39 @@ from emei.envs.mujoco.mujoco_env import EmeiMujocoEnv
 
 DEFAULT_CAMERA_CONFIG = {
     "trackbodyid": 2,
-    "distance": 3.0,
+    "distance": 4.0,
     "lookat": np.array((0.0, 0.0, 1.15)),
     "elevation": -20.0,
 }
 
 
-class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
+class Walker2dRunningEnv(EmeiMujocoEnv, utils.EzPickle):
+    metadata = {
+        "render_modes": [
+            "human",
+            "rgb_array",
+            "depth_array",
+        ],
+        "render_fps": 125,
+    }
+
     def __init__(
             self,
             freq_rate: int = 1,
-            real_time_scale: float = 0.01,
-            integrator: str = "euler",
+            real_time_scale: float = 0.02,
+            integrator="euler",
             # noise
             init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
             obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
             # reward mech
-            forward_reward_weight: float = 1.0,
-            ctrl_cost_weight: float = 1e-3,
-            healthy_reward: float = 1.0,
+            forward_reward_weight=1.0,
+            ctrl_cost_weight=1e-3,
+            healthy_reward=1.0,
             # termination mech
-            terminate_when_unhealthy: bool = True,
+            terminate_when_unhealthy=True,
             # range
-            healthy_state_range: Tuple[float, float] = (-100.0, 100.0),
-            healthy_z_range: Tuple[float, float] = (0.7, float("inf")),
-            healthy_angle_range: Tuple[float, float] = (-0.2, 0.2),
+            healthy_z_range=(0.8, 2.0),
+            healthy_angle_range=(-1.0, 1.0),
             **kwargs
     ):
         utils.EzPickle.__init__(
@@ -46,7 +54,6 @@ class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
             ctrl_cost_weight,
             healthy_reward,
             terminate_when_unhealthy,
-            healthy_state_range,
             healthy_z_range,
             healthy_angle_range,
             **kwargs
@@ -58,14 +65,13 @@ class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
 
         self._terminate_when_unhealthy = terminate_when_unhealthy
 
-        self._healthy_state_range = healthy_state_range
         self._healthy_z_range = healthy_z_range
         self._healthy_angle_range = healthy_angle_range
 
-        observation_space = Box(low=-np.inf, high=np.inf, shape=(11,), dtype=np.float64)
+        observation_space = Box(low=-np.inf, high=np.inf, shape=(17,), dtype=np.float64)
         EmeiMujocoEnv.__init__(
             self,
-            model_path="hopper.xml",
+            model_path="walker2d.xml",
             observation_space=observation_space,
             freq_rate=freq_rate,
             real_time_scale=real_time_scale,
@@ -89,17 +95,14 @@ class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
 
     def is_healthy(self, next_state):
         z, angle = next_state[:, 1:3].T
-        state = next_state[:, 2:]
 
-        min_state, max_state = self._healthy_state_range
         min_z, max_z = self._healthy_z_range
         min_angle, max_angle = self._healthy_angle_range
 
-        healthy_state = np.all(np.logical_and(min_state < state, state < max_state), axis=1)
         healthy_z = np.logical_and(min_z < z, z < max_z)
         healthy_angle = np.logical_and(min_angle < angle, angle < max_angle)
 
-        is_healthy = np.logical_and(healthy_state, healthy_z, healthy_angle)
+        is_healthy = np.logical_and(healthy_z, healthy_angle)
         return is_healthy
 
     def get_batch_reward(self, next_state, state=None, action=None):
@@ -116,9 +119,8 @@ class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
         terminals = np.logical_and(~self.is_healthy(next_state), self._terminate_when_unhealthy)
         return terminals.reshape([next_state.shape[0], 1])
 
-
 if __name__ == "__main__":
-    env = HopperRunningEnv(render_mode="human")
+    env = Walker2dRunningEnv(render_mode="human")
     obs, info = env.reset()
 
     for i in range(100):
