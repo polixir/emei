@@ -1,8 +1,8 @@
-env_id: "HopperRunning-v0"
+env_id: "Walker2dRunning-v0"
 
 params:
   freq_rate: 1
-  real_time_scale: 0.01
+  real_time_scale: 0.02
   integrator: "euler"
 
 # sac
@@ -16,8 +16,8 @@ eval_freq: 1000
 # num steps
 num_steps: 10000000
 
-medium_reward: 1500
-expert_reward: 3000
+medium_reward: 3000
+expert_reward: 6000
 uniform_sample_num: 200000
 random_sample_num: 200000
 medium_sample_num: 200000
