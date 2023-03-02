@@ -27,7 +27,7 @@ class Walker2dRunningEnv(EmeiMujocoEnv, utils.EzPickle):
     def __init__(
             self,
             freq_rate: int = 1,
-            real_time_scale: float = 0.02,
+            real_time_scale: float = 0.01,
             integrator="euler",
             # noise
             init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
