@@ -1,10 +1,11 @@
 import inspect
 import pathlib
 from collections import defaultdict
-from typing import Union, Dict
+from typing import Union, Dict, Optional
 from abc import abstractmethod
 
 import gym
+from gym.spaces import Space
 import h5py
 import numpy as np
 from tqdm import tqdm
@@ -143,10 +144,16 @@ class OfflineEnv(gym.Env):
 
 
 class EmeiEnv(FreezeMixin, OfflineEnv):
-    def __init__(self, env_params: Dict[str, Union[str, int, float]]):
+    def __init__(
+            self,
+            env_params: Dict[str, Union[str, int, float]],
+            state_space: Optional[Space] = None
+    ):
         """
         Abstract class for all Emei environments to better support model-based RL and offline RL.
         """
+        self.state_space = state_space
+
         FreezeMixin.__init__(self)
         OfflineEnv.__init__(self, env_params=env_params)
         self._transition_graph = None

@@ -43,10 +43,12 @@ class HalfCheetahRunningEnv(EmeiMujocoEnv, utils.EzPickle):
         self._ctrl_cost_weight = ctrl_cost_weight
 
         observation_space = Box(low=-np.inf, high=np.inf, shape=(17,), dtype=np.float64)
+        state_space = Box(low=-np.inf, high=np.inf, shape=(18,), dtype=np.float64)
         EmeiMujocoEnv.__init__(
             self,
             model_path="half_cheetah.xml",
             observation_space=observation_space,
+            state_space=state_space,
             freq_rate=freq_rate,
             real_time_scale=real_time_scale,
             integrator=integrator,

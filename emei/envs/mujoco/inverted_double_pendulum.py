@@ -28,10 +28,12 @@ class BaseInvertedDoublePendulumEnv(EmeiMujocoEnv, utils.EzPickle):
 
         high = np.array([np.inf, np.pi, np.pi, np.inf, np.inf, np.inf])
         observation_space = Box(low=-high, high=high, dtype=np.float64)
+        state_space = Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64)
         EmeiMujocoEnv.__init__(
             self,
-            model_path="inverted_double_pendulum.xml",
-            observation_space=observation_space,
+            "inverted_double_pendulum.xml",
+            observation_space,
+            state_space,
             freq_rate=freq_rate,
             real_time_scale=real_time_scale,
             integrator=integrator,

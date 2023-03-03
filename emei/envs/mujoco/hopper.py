@@ -63,10 +63,12 @@ class HopperRunningEnv(EmeiMujocoEnv, utils.EzPickle):
         self._healthy_angle_range = healthy_angle_range
 
         observation_space = Box(low=-np.inf, high=np.inf, shape=(11,), dtype=np.float64)
+        state_space = Box(low=-np.inf, high=np.inf, shape=(12,), dtype=np.float64)
         EmeiMujocoEnv.__init__(
             self,
             model_path="hopper.xml",
             observation_space=observation_space,
+            state_space=state_space,
             freq_rate=freq_rate,
             real_time_scale=real_time_scale,
             integrator=integrator,
