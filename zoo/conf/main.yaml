@@ -1,5 +1,5 @@
 defaults:
-  - task: continuous_cart_pole_swingup
+  - task: parallel_cart_pole
   - algorithm: sac
   - _self_
 

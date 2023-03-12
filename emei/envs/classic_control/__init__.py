@@ -3,6 +3,7 @@ from emei.envs.classic_control.cartpole import (
     CartPoleBalancingEnv,
     ContinuousCartPoleBalancingEnv,
     ContinuousCartPoleSwingUpEnv,
+    ParallelContinuousCartPoleSwingUpEnv
 )
 from emei.envs.classic_control.charged_ball import (
     ChargedBallCenteringEnv,

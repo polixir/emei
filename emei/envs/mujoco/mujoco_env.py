@@ -25,7 +25,7 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
             self,
             model_path: str,
             observation_space: spaces.Space,
-            state_space: spaces.Space,
+            state_space: spaces.Space = None,
             freq_rate: int = 1,
             real_time_scale: float = 0.02,
             integrator: str = "euler",

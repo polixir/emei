@@ -10,6 +10,8 @@ import pygame
 from pygame import gfxdraw
 
 from gym import spaces
+
+import emei
 from emei.envs.classic_control.base_control import BaseControlEnv
 
 
@@ -46,9 +48,9 @@ class BaseCartPoleEnv(BaseControlEnv):
         pole_mass_length = self.mass_pole * self.length
         cos_theta = math.cos(self.get_absolute_theta(theta))
         sin_theta = math.sin(self.get_absolute_theta(theta))
-        temp = (force + pole_mass_length * theta_dot**2 * sin_theta) / self.total_mass
+        temp = (force + pole_mass_length * theta_dot ** 2 * sin_theta) / self.total_mass
         theta_acc = (self.gravity * sin_theta - cos_theta * temp) / (
-            self.length * (4.0 / 3.0 - self.mass_pole * cos_theta**2 / self.total_mass)
+                self.length * (4.0 / 3.0 - self.mass_pole * cos_theta ** 2 / self.total_mass)
         )
         x_acc = temp - pole_mass_length * theta_acc * cos_theta / self.total_mass
 
@@ -192,14 +194,87 @@ class ContinuousCartPoleSwingUpEnv(CartPoleSwingUpEnv):
         return self.force_mag * action[0]
 
 
+class ParallelContinuousCartPoleSwingUpEnv(BaseControlEnv):
+    def __init__(
+            self,
+            parallel_num=3,
+            freq_rate: int = 1,
+            real_time_scale: float = 0.02,
+            integrator: str = "euler",
+            **kwargs):
+        self.parallel_num = parallel_num
+
+        self.envs = [ContinuousCartPoleSwingUpEnv()] * parallel_num
+        self.action_space = spaces.Box(-1, 1, shape=(parallel_num,), dtype=np.float32)
+        high = np.array([np.inf, np.pi, np.inf, np.inf] * parallel_num)
+        self.observation_space = spaces.Box(low=-high, high=high, dtype=np.float32)
+
+        self._transition_graph = np.zeros((5 * parallel_num, 4 * parallel_num))
+        # self._transition_graph
+        #     np.array(
+        #     [[0, 0, 0, 0], [0, 0, 1, 1], [1, 0, 0, 0], [0, 1, 1, 1], [0, 0, 1, 1]]  # x  # theta  # v  # omega  # action
+        # )
+        self._reward_mech_graph = None
+        self._termination_graph = None
+
+        super().__init__(
+            self.observation_space,
+            parallel_num=parallel_num,
+            freq_rate=freq_rate,
+            real_time_scale=real_time_scale,
+            integrator=integrator,
+            **kwargs
+        )
+
+    def _extract_action(self, action):
+        return self.envs[0].force_mag * action
+
+    def get_batch_terminal(self, next_state, state=None, action=None):
+        ts = np.concatenate(
+            [env.get_batch_terminal(next_state[:, i * 4: (i + 1) * 4]) for i, env in enumerate(self.envs)], -1)
+        return ts.all(-1).reshape(-1, 1)
+
+    def get_batch_reward(self, next_state, state=None, action=None):
+        rs = np.concatenate(
+            [env.get_batch_reward(next_state[:, i * 4: (i + 1) * 4]) for i, env in enumerate(self.envs)], -1)
+        return rs.sum(-1).reshape(-1, 1)
+
+    def _dsdt(self, s_augmented):
+        s_augmented_dot = np.empty(self.parallel_num * 5, dtype=np.float32)
+        for i, env in enumerate(self.envs):
+            indices = [4 * i, 4 * i + 1, 4 * i + 2, 4 * i + 3, 4 * self.parallel_num + i]
+            s_augmented_dot[indices] = env._dsdt(s_augmented[indices])
+        return s_augmented_dot
+
+    def get_batch_init_state(self, batch_size):
+        obs = np.concatenate([env.get_batch_init_state(batch_size) for env in self.envs], -1)
+        return obs
+
+    def state2obs(self, batch_state):
+        batch_state = np.concatenate(
+            [env.state2obs(batch_state[:, i * 4:(i + 1) * 4]) for i, env in enumerate(self.envs)], -1)
+        return batch_state
+
+    def obs2state(self, batch_obs, batch_extra_obs):
+        batch_state = np.concatenate(
+            [env.obs2state(batch_obs[:, i * 4:(i + 1) * 4],
+                           batch_extra_obs[:, i:i + 1], ) for i, env in enumerate(self.envs)], -1)
+        return batch_state
+
+    def get_batch_extra_obs(self, batch_state):
+        batch_state = batch_state.copy()
+        return batch_state[:, [4 * i + 1 for i in range(self.parallel_num)]].astype(np.float32)
+
+
 if __name__ == "__main__":
-    env = ContinuousCartPoleSwingUpEnv()
+    env = ParallelContinuousCartPoleSwingUpEnv(render_mode="human")
     obs, info = env.reset()
 
-    for i in range(10000):
+    for i in range(100):
         action = env.action_space.sample()
         obs, reward, terminal, truncated, info = env.step(action)
+        # env.render()
 
-    obs, reward, terminal, truncated, info = env.step(np.ones(1, dtype=np.float32))
+    obs, reward, terminal, truncated, info = env.step(env.action_space.sample())
     state = env.obs2state(obs[None], info["next_extra_obs"][None])[0]
     print(obs, info, state)

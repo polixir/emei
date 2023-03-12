@@ -12,12 +12,13 @@ class BaseControlEnv(EmeiEnv):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
 
     def __init__(
-        self,
-        freq_rate: int = 1,
-        real_time_scale: float = 0.02,
-        integrator: str = "euler",
-        render_mode: Optional[str] = None,
-        **kwargs,
+            self,
+            state_space: spaces.Space = None,
+            freq_rate: int = 1,
+            real_time_scale: float = 0.02,
+            integrator: str = "euler",
+            render_mode: Optional[str] = None,
+            **kwargs,
     ):
         self.freq_rate = freq_rate
         self.real_time_scale = real_time_scale
@@ -34,7 +35,7 @@ class BaseControlEnv(EmeiEnv):
 
         env_params = dict(freq_rate=freq_rate, real_time_scale=real_time_scale, integrator=integrator)
         env_params.update(kwargs)
-        EmeiEnv.__init__(self, env_params=env_params)
+        EmeiEnv.__init__(self, env_params=env_params, state_space=state_space)
 
     def freeze_state(self) -> None:
         self.frozen_state = self.state.copy()
@@ -43,10 +44,10 @@ class BaseControlEnv(EmeiEnv):
         self.state = self.frozen_state.copy()
 
     def reset(
-        self,
-        *,
-        seed: Optional[int] = None,
-        options: Optional[dict] = None,
+            self,
+            *,
+            seed: Optional[int] = None,
+            options: Optional[dict] = None,
     ):
         super().reset(seed=seed)
 
@@ -170,7 +171,7 @@ class BaseControlEnv(EmeiEnv):
 
 
 def ODE_approximation(
-    derivs: Callable[[np.ndarray], np.ndarray], y0: np.ndarray, dt: float, steps: int, method: str = "euler"
+        derivs: Callable[[np.ndarray], np.ndarray], y0: np.ndarray, dt: float, steps: int, method: str = "euler"
 ):
     """
     Integrate 1-D or N-D system of ODEs.
