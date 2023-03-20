@@ -11,16 +11,17 @@ DEFAULT_CAMERA_CONFIG = {}
 
 class BaseInvertedPendulumEnv(EmeiMujocoEnv, utils.EzPickle):
     def __init__(
-        self,
-        freq_rate: int = 1,
-        real_time_scale: float = 0.02,
-        integrator="euler",
-        # noise
-        init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
-        obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
-        **kwargs
+            self,
+            freq_rate: int = 1,
+            real_time_scale: float = 0.02,
+            integrator="euler",
+            # noise
+            init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
+            obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
+            **kwargs
     ):
-        utils.EzPickle.__init__(self, freq_rate, real_time_scale, integrator, init_noise_params, obs_noise_params, **kwargs)
+        utils.EzPickle.__init__(self, freq_rate, real_time_scale, integrator, init_noise_params, obs_noise_params,
+                                **kwargs)
 
         high = np.array([np.inf, np.pi, np.inf, np.inf])
         observation_space = Box(low=-high, high=high, dtype=np.float64)
@@ -62,14 +63,14 @@ class BaseInvertedPendulumEnv(EmeiMujocoEnv, utils.EzPickle):
 
 class ReboundInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
     def __init__(
-        self,
-        freq_rate: int = 1,
-        real_time_scale: float = 0.02,
-        integrator="euler",
-        # noise
-        init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
-        obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
-        **kwargs
+            self,
+            freq_rate: int = 1,
+            real_time_scale: float = 0.02,
+            integrator="euler",
+            # noise
+            init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
+            obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
+            **kwargs
     ):
         BaseInvertedPendulumEnv.__init__(
             self,
@@ -92,14 +93,14 @@ class ReboundInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
 
 class BoundaryInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
     def __init__(
-        self,
-        freq_rate: int = 1,
-        real_time_scale: float = 0.02,
-        integrator="euler",
-        # noise
-        init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
-        obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
-        **kwargs
+            self,
+            freq_rate: int = 1,
+            real_time_scale: float = 0.02,
+            integrator="euler",
+            # noise
+            init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
+            obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
+            **kwargs
     ):
         BaseInvertedPendulumEnv.__init__(
             self,
@@ -124,14 +125,14 @@ class BoundaryInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):
 
 class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
     def __init__(
-        self,
-        freq_rate: int = 1,
-        real_time_scale: float = 0.02,
-        integrator="euler",
-        # noise
-        init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
-        obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
-        **kwargs
+            self,
+            freq_rate: int = 1,
+            real_time_scale: float = 0.02,
+            integrator="euler",
+            # noise
+            init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
+            obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
+            **kwargs
     ):
         BaseInvertedPendulumEnv.__init__(
             self,
@@ -159,14 +160,14 @@ class ReboundInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
 
 class BoundaryInvertedPendulumSwingUpEnv(BaseInvertedPendulumEnv):
     def __init__(
-        self,
-        freq_rate: int = 1,
-        real_time_scale: float = 0.02,
-        integrator="euler",
-        # noise
-        init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
-        obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
-        **kwargs
+            self,
+            freq_rate: int = 1,
+            real_time_scale: float = 0.02,
+            integrator="euler",
+            # noise
+            init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
+            obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
+            **kwargs
     ):
         BaseInvertedPendulumEnv.__init__(
             self,

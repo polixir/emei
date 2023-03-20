@@ -17,10 +17,6 @@ from emei.envs.classic_control.base_control import BaseControlEnv
 
 class BaseCartPoleEnv(BaseControlEnv):
     def __init__(self, freq_rate: int = 1, real_time_scale: float = 0.02, integrator: str = "euler", **kwargs):
-        super(BaseCartPoleEnv, self).__init__(
-            freq_rate=freq_rate, real_time_scale=real_time_scale, integrator=integrator, **kwargs
-        )
-
         self.gravity = kwargs.get("gravity", 9.8)
         self.mass_cart = kwargs.get("mass_cart", 1.0)
         self.mass_pole = kwargs.get("mass_pole", 0.1)
@@ -41,6 +37,11 @@ class BaseCartPoleEnv(BaseControlEnv):
         )
         self._reward_mech_graph = None
         self._termination_graph = None
+
+        super(BaseCartPoleEnv, self).__init__(
+            state_space=spaces.Box(low=-np.inf, high=np.inf, shape=[4], dtype=np.float32),
+            freq_rate=freq_rate, real_time_scale=real_time_scale, integrator=integrator, **kwargs
+        )
 
     def _dsdt(self, s_augmented):
         x, theta, x_dot, theta_dot, force = s_augmented
