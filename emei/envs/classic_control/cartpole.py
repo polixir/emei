@@ -49,9 +49,9 @@ class BaseCartPoleEnv(BaseControlEnv):
         pole_mass_length = self.mass_pole * self.length
         cos_theta = math.cos(self.get_absolute_theta(theta))
         sin_theta = math.sin(self.get_absolute_theta(theta))
-        temp = (force + pole_mass_length * theta_dot ** 2 * sin_theta) / self.total_mass
+        temp = (force + pole_mass_length * theta_dot**2 * sin_theta) / self.total_mass
         theta_acc = (self.gravity * sin_theta - cos_theta * temp) / (
-                self.length * (4.0 / 3.0 - self.mass_pole * cos_theta ** 2 / self.total_mass)
+            self.length * (4.0 / 3.0 - self.mass_pole * cos_theta**2 / self.total_mass)
         )
         x_acc = temp - pole_mass_length * theta_acc * cos_theta / self.total_mass
 
@@ -196,13 +196,7 @@ class ContinuousCartPoleSwingUpEnv(CartPoleSwingUpEnv):
 
 
 class ParallelContinuousCartPoleSwingUpEnv(BaseControlEnv):
-    def __init__(
-            self,
-            parallel_num=3,
-            freq_rate: int = 1,
-            real_time_scale: float = 0.02,
-            integrator: str = "euler",
-            **kwargs):
+    def __init__(self, parallel_num=3, freq_rate: int = 1, real_time_scale: float = 0.02, integrator: str = "euler", **kwargs):
         self.parallel_num = parallel_num
 
         self.envs = [ContinuousCartPoleSwingUpEnv()] * parallel_num
@@ -211,10 +205,11 @@ class ParallelContinuousCartPoleSwingUpEnv(BaseControlEnv):
         self.observation_space = spaces.Box(low=-high, high=high, dtype=np.float32)
 
         self._transition_graph = np.zeros((5 * parallel_num, 4 * parallel_num))
-        # self._transition_graph
-        #     np.array(
-        #     [[0, 0, 0, 0], [0, 0, 1, 1], [1, 0, 0, 0], [0, 1, 1, 1], [0, 0, 1, 1]]  # x  # theta  # v  # omega  # action
-        # )
+        for i in range(parallel_num):
+            self._transition_graph[i * 4 : (i + 1) * 4, i * 4 : (i + 1) * 4] = np.array(
+                [[0, 0, 0, 0], [0, 0, 1, 1], [1, 0, 0, 0], [0, 1, 1, 1]]
+            )
+            self._transition_graph[4 * parallel_num + i, i * 4 : (i + 1) * 4] = np.array([0, 0, 1, 1])
         self._reward_mech_graph = None
         self._termination_graph = None
 
@@ -232,12 +227,12 @@ class ParallelContinuousCartPoleSwingUpEnv(BaseControlEnv):
 
     def get_batch_terminal(self, next_state, state=None, action=None):
         ts = np.concatenate(
-            [env.get_batch_terminal(next_state[:, i * 4: (i + 1) * 4]) for i, env in enumerate(self.envs)], -1)
+            [env.get_batch_terminal(next_state[:, i * 4 : (i + 1) * 4]) for i, env in enumerate(self.envs)], -1
+        )
         return ts.all(-1).reshape(-1, 1)
 
     def get_batch_reward(self, next_state, state=None, action=None):
-        rs = np.concatenate(
-            [env.get_batch_reward(next_state[:, i * 4: (i + 1) * 4]) for i, env in enumerate(self.envs)], -1)
+        rs = np.concatenate([env.get_batch_reward(next_state[:, i * 4 : (i + 1) * 4]) for i, env in enumerate(self.envs)], -1)
         return rs.sum(-1).reshape(-1, 1)
 
     def _dsdt(self, s_augmented):
@@ -253,13 +248,21 @@ class ParallelContinuousCartPoleSwingUpEnv(BaseControlEnv):
 
     def state2obs(self, batch_state):
         batch_state = np.concatenate(
-            [env.state2obs(batch_state[:, i * 4:(i + 1) * 4]) for i, env in enumerate(self.envs)], -1)
+            [env.state2obs(batch_state[:, i * 4 : (i + 1) * 4]) for i, env in enumerate(self.envs)], -1
+        )
         return batch_state
 
     def obs2state(self, batch_obs, batch_extra_obs):
         batch_state = np.concatenate(
-            [env.obs2state(batch_obs[:, i * 4:(i + 1) * 4],
-                           batch_extra_obs[:, i:i + 1], ) for i, env in enumerate(self.envs)], -1)
+            [
+                env.obs2state(
+                    batch_obs[:, i * 4 : (i + 1) * 4],
+                    batch_extra_obs[:, i : i + 1],
+                )
+                for i, env in enumerate(self.envs)
+            ],
+            -1,
+        )
         return batch_state
 
     def get_batch_extra_obs(self, batch_state):
