@@ -48,7 +48,7 @@ def rk4(derivs, y0, t):
 
     Args:
         derivs: the derivative of the system and has the signature ``dy = derivs(yi)``
-        y0: initial state vector
+        y0: initial next_state vector
         t: sample times
         cfg: additional arguments passed to the derivative function
         kwargs: additional keyword arguments passed to the derivative function

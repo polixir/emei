@@ -1,10 +1,10 @@
 defaults:
-  - task: BIPS
+  - task: parallel_cart_pole
   - algorithm: sac
   - _self_
 
 seed: 0
-device: "cuda:0"
+device: "cpu"
 log_frequency_agent: 1000
 
 exp_name: default

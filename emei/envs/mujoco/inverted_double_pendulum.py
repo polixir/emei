@@ -25,11 +25,15 @@ class BaseInvertedDoublePendulumEnv(EmeiMujocoEnv, utils.EzPickle):
         **kwargs
     ):
         utils.EzPickle.__init__(self, freq_rate, real_time_scale, integrator, init_noise_params, obs_noise_params, **kwargs)
-        observation_space = Box(low=-np.inf, high=np.inf, shape=(4,), dtype=np.float64)
+
+        high = np.array([np.inf, np.pi, np.pi, np.inf, np.inf, np.inf])
+        observation_space = Box(low=-high, high=high, dtype=np.float64)
+        state_space = Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64)
         EmeiMujocoEnv.__init__(
             self,
-            model_path="inverted_double_pendulum.xml",
-            observation_space=observation_space,
+            "inverted_double_pendulum.xml",
+            observation_space,
+            state_space,
             freq_rate=freq_rate,
             real_time_scale=real_time_scale,
             integrator=integrator,
@@ -53,11 +57,19 @@ class BaseInvertedDoublePendulumEnv(EmeiMujocoEnv, utils.EzPickle):
         self._reward_mech_graph = None
         self._termination_graph = None
 
-    @property
-    def current_obs(self):
-        state = self.state_vector().copy()
-        state[1:3] = (state[1:3] + np.pi) % 2 * np.pi - np.pi
-        return state
+    def state2obs(self, batch_state):
+        batch_state = batch_state.copy()
+        batch_state[:, 1:3] = (batch_state[:, 1:3] + np.pi) % (2 * np.pi) - np.pi
+        return batch_state
+
+    def obs2state(self, batch_obs, batch_extra_obs):
+        batch_state = batch_obs.copy()
+        batch_state[:, 1:3] = batch_extra_obs[:]
+        return batch_state
+
+    def get_batch_extra_obs(self, batch_state):
+        batch_state = batch_state.copy()
+        return batch_state[:, 1:3].astype(np.float32)
 
 
 class ReboundInvertedDoublePendulumBalancingEnv(BaseInvertedDoublePendulumEnv):
@@ -81,13 +93,13 @@ class ReboundInvertedDoublePendulumBalancingEnv(BaseInvertedDoublePendulumEnv):
             **kwargs
         )
 
-    def get_batch_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        return np.ones([obs.shape[0], 1])
+    def get_batch_reward(self, next_state, state=None, action=None):
+        return np.ones([next_state.shape[0], 1])
 
-    def get_batch_terminal(self, obs: np.ndarray, pre_obs=None, action=None, state=None, pre_state=None):
-        y = np.cos(obs[:, 1]) + np.cos(obs[:, 1] + obs[:, 2])
-        notdone = (y >= 1.5) & np.isfinite(obs).all(axis=1)
-        return np.logical_not(notdone).reshape([obs.shape[0], 1])
+    def get_batch_terminal(self, next_obs: np.ndarray, obs=None, action=None, next_state=None, state=None):
+        y = np.cos(next_obs[:, 1]) + np.cos(next_obs[:, 1] + next_obs[:, 2])
+        notdone = (y >= 1.5) & np.isfinite(next_obs).all(axis=1)
+        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
 
 class BoundaryInvertedDoublePendulumBalancingEnv(BaseInvertedDoublePendulumEnv):
@@ -111,15 +123,15 @@ class BoundaryInvertedDoublePendulumBalancingEnv(BaseInvertedDoublePendulumEnv):
             **kwargs
         )
 
-    def get_batch_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        return np.ones([obs.shape[0], 1])
+    def get_batch_reward(self, next_state, state=None, action=None):
+        return np.ones([next_state.shape[0], 1])
 
-    def get_batch_terminal(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        y = np.cos(obs[:, 1]) + np.cos(obs[:, 1] + obs[:, 2])
-        x = obs[:, 0]
+    def get_batch_terminal(self, next_obs, obs=None, action=None, next_state=None, state=None):
+        y = np.cos(next_obs[:, 1]) + np.cos(next_obs[:, 1] + next_obs[:, 2])
+        x = next_obs[:, 0]
         x_left, x_right = self.model.jnt_range[0]
-        notdone = (y >= 0) & np.logical_and(x_left < x, x < x_right) & np.isfinite(obs).all(axis=1)
-        return np.logical_not(notdone).reshape([obs.shape[0], 1])
+        notdone = (y >= 0) & np.logical_and(x_left < x, x < x_right) & np.isfinite(next_obs).all(axis=1)
+        return np.logical_not(notdone).reshape([next_obs.shape[0], 1])
 
 
 class ReboundInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
@@ -147,14 +159,16 @@ class ReboundInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
         self.model.jnt_range[1] = [-np.inf, np.inf]
         self.model.body_quat[2] = [0, 0, 1, 0]
 
-    def get_batch_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        y = np.cos(obs[:, 1]) + np.cos(obs[:, 1] + obs[:, 2])
-        rewards = (2 - y) / 4
-        return rewards.reshape([obs.shape[0], 1])
+    def get_batch_reward(self, next_state, state=None, action=None):
+        y = np.cos(next_state[:, 1]) + np.cos(next_state[:, 1] + next_state[:, 2])
+        omega1, omega2 = next_state[:, -2:].T
+        vel_penalty = 5e-3 * omega1 ** 2 + 1e-4 * omega2 ** 2
+        rewards = (2 - y) / 4 - vel_penalty
+        return rewards.reshape([next_state.shape[0], 1])
 
-    def get_batch_terminal(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        notdone = np.isfinite(obs).all(axis=1)
-        return np.logical_not(notdone).reshape([obs.shape[0], 1])
+    def get_batch_terminal(self, next_state, state=None, action=None):
+        notdone = np.isfinite(next_state).all(axis=1)
+        return np.logical_not(notdone).reshape([next_state.shape[0], 1])
 
 
 class BoundaryInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
@@ -182,15 +196,29 @@ class BoundaryInvertedDoublePendulumSwingUpEnv(BaseInvertedDoublePendulumEnv):
         self.model.jnt_range[1] = [-np.inf, np.inf]
         self.model.body_quat[2] = [0, 0, 1, 0]
 
-    def get_batch_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        y = np.cos(obs[:, 1]) + np.cos(obs[:, 1] + obs[:, 2])
-        omega1, omega2 = obs[:, -2:].T
-        vel_penalty = 5e-3 * omega1**2 + 1e-4 * omega2**2
+    def get_batch_reward(self, next_state, state=None, action=None):
+        y = np.cos(next_state[:, 1]) + np.cos(next_state[:, 1] + next_state[:, 2])
+        omega1, omega2 = next_state[:, -2:].T
+        vel_penalty = 5e-2 * omega1**2 + 1e-2 * omega2**2
         rewards = (2 - y) / 4 - vel_penalty
-        return rewards.reshape([obs.shape[0], 1])
+        return rewards.reshape([next_state.shape[0], 1])
 
-    def get_batch_terminal(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        x = obs[:, 0]
+    def get_batch_terminal(self, next_state, state=None, action=None):
+        x = next_state[:, 0]
         x_left, x_right = self.model.jnt_range[0]
-        notdone = np.logical_and(x_left < x, x < x_right) & np.isfinite(obs).all(axis=1)
-        return np.logical_not(notdone).reshape([obs.shape[0], 1])
+        notdone = np.logical_and(x_left < x, x < x_right) & np.isfinite(next_state).all(axis=1)
+        return np.logical_not(notdone).reshape([next_state.shape[0], 1])
+
+
+
+if __name__ == "__main__":
+    env = BoundaryInvertedDoublePendulumSwingUpEnv()
+    env.reset()
+
+    for i in range(50000):
+        action = env.action_space.sample()
+        obs, reward, terminal, truncated, info = env.step(action)
+
+    obs, reward, terminal, truncated, info = env.step(np.ones(1, dtype=np.float32))
+    state = env.obs2state(obs[None], info["next_extra_obs"][None])[0]
+    print(obs, info, state)

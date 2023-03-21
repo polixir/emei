@@ -14,7 +14,7 @@ _load_env_plugins()
 register(
     id="CartPoleBalancing-v0",
     entry_point="emei.envs.classic_control:CartPoleBalancingEnv",
-    max_episode_steps=500,
+    max_episode_steps=1000,
 )
 register(
     id="CartPoleSwingUp-v0",
@@ -24,7 +24,7 @@ register(
 register(
     id="ContinuousCartPoleBalancing-v0",
     entry_point="emei.envs.classic_control:ContinuousCartPoleBalancingEnv",
-    max_episode_steps=500,
+    max_episode_steps=1000,
 )
 register(
     id="ContinuousCartPoleSwingUp-v0",
@@ -32,13 +32,8 @@ register(
     max_episode_steps=1000,
 )
 register(
-    id="ChargedBallCentering-v0",
-    entry_point="emei.envs.classic_control:ChargedBallCenteringEnv",
-    max_episode_steps=500,
-)
-register(
-    id="ContinuousChargedBallCentering-v0",
-    entry_point="emei.envs.classic_control:ContinuousChargedBallCenteringEnv",
+    id="ParallelContinuousCartPoleSwingUp-v0",
+    entry_point="emei.envs.classic_control:ParallelContinuousCartPoleSwingUpEnv",
     max_episode_steps=1000,
 )
 

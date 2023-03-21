@@ -22,22 +22,23 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
     }
 
     def __init__(
-        self,
-        model_path: str,
-        observation_space: spaces.Space,
-        freq_rate: int = 1,
-        real_time_scale: float = 0.02,
-        integrator: str = "euler",
-        init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
-        obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
-        # camera
-        camera_config: Optional[Dict] = None,
-        # base mujoco env
-        render_mode: Optional[str] = None,
-        width: int = DEFAULT_SIZE,
-        height: int = DEFAULT_SIZE,
-        camera_id: Optional[int] = None,
-        camera_name: Optional[str] = None,
+            self,
+            model_path: str,
+            observation_space: spaces.Space,
+            state_space: spaces.Space = None,
+            freq_rate: int = 1,
+            real_time_scale: float = 0.02,
+            integrator: str = "euler",
+            init_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 5e-3,
+            obs_noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]] = 0.0,
+            # camera
+            camera_config: Optional[Dict] = None,
+            # base mujoco env
+            render_mode: Optional[str] = None,
+            width: int = DEFAULT_SIZE,
+            height: int = DEFAULT_SIZE,
+            camera_id: Optional[int] = None,
+            camera_name: Optional[str] = None,
     ):
         self.freq_rate = freq_rate
         self.real_time_scale = real_time_scale
@@ -48,7 +49,11 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
         self._camera_config = camera_config if camera_config is None else {}
         self.metadata["render_fps"] = int(np.round(1.0 / (self.real_time_scale * self.freq_rate)))
 
-        EmeiEnv.__init__(self, env_params=dict(freq_rate=freq_rate, real_time_scale=real_time_scale, integrator=integrator))
+        EmeiEnv.__init__(
+            self,
+            env_params=dict(freq_rate=freq_rate, real_time_scale=real_time_scale, integrator=integrator),
+            state_space=state_space
+        )
         MujocoEnv.__init__(
             self,
             model_path,
@@ -111,12 +116,10 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
     def _update_model(self):
         pass
 
-    def freeze(self):
-        self.frozen = True
+    def freeze_state(self):
         self.frozen_state = (self.data.qpos.copy(), self.data.qvel.copy())
 
-    def unfreeze(self):
-        self.frozen = False
+    def unfreeze_state(self):
         self.set_state(*self.frozen_state)
 
     def viewer_setup(self):
@@ -127,49 +130,78 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
             else:
                 setattr(self.viewer.cam, key, value)
 
-    def reset_model(self):
-        pos, vel = self.get_batch_init_state(1)
-        self.set_state(pos[0], vel[0])
-
-        observation = np.concatenate([pos[0], vel[0]])
-        return observation
-
     def get_batch_init_state(self, batch_size):
         origin_pos = np.tile(self.init_qpos[None, :], [batch_size, 1])
         origin_vel = np.tile(self.init_qvel[None, :], [batch_size, 1])
         return self.additive_gaussian_noise(origin_pos, origin_vel, self.init_noise_params)
 
-    def transform_state_to_obs(self, batch_state):
-        pos, vel = batch_state
-        return np.concatenate([pos, vel], axis=1)
+    def state2obs(self, batch_state):
+        return batch_state.copy()
 
-    def transform_obs_to_state(self, batch_obs):
+    def obs2state(self, batch_obs, batch_extra_obs):
         assert len(batch_obs.shape) == 2
         if batch_obs.shape[1] == (self.model.nq + self.model.nv,):
-            return batch_obs[:, : self.model.nq], batch_obs[:, self.model.nq :]
+            return batch_obs.copy()
         else:
             raise NotImplementedError
 
-    @property
-    def current_obs(self):
+    def get_batch_extra_obs(self, batch_state):
+        return batch_state.copy()
+
+    def get_current_state(self):
         return self.state_vector()
 
     def step(self, action):
-        pre_obs = self.current_obs
-        self.do_simulation(action, self.freq_rate)
-        obs = self.current_obs
-
-        reward = self.get_batch_reward(obs[None], pre_obs[None], action[None])[0, 0]
-        terminal = self.get_batch_terminal(obs[None], pre_obs[None], action[None])[0, 0]
-        truncated = False
         info = {}
 
-        return obs, reward, terminal, truncated, info
+        state = self.get_current_state()
+        info["extra_obs"] = self.get_batch_extra_obs(state[None])[0]
+        self.do_simulation(action, self.freq_rate)
+
+        next_state = self.get_current_state()
+        info["next_extra_obs"] = self.get_batch_extra_obs(next_state[None])[0]
+
+        reward = self.get_batch_reward(next_state[None], state[None], action[None])[0, 0]
+        terminal = self.get_batch_terminal(next_state[None], state[None], action[None])[0, 0]
+        truncated = False
+
+        return self.state2obs(next_state[None])[0], reward, terminal, truncated, info
+
+    def reset(
+            self,
+            *,
+            seed: Optional[int] = None,
+            options: Optional[dict] = None,
+    ):
+        EmeiEnv.reset(self, seed=seed)
+
+        self._reset_simulation()
+
+        pos, vel = self.get_batch_init_state(1)
+        self.set_state(pos[0], vel[0])
+
+        if self.render_mode == "human":
+            self.render()
+        state = self.get_current_state()
+        return self.state2obs(state[None])[0], {}
+
+    def get_batch_next_obs(self, obs, action):
+        self.freeze()
+
+        next_state = np.empty(shape=obs.shape)
+
+        for i, o in enumerate(obs):
+            self.set_state(o[: self.model.nq], o[self.model.nq:])
+            self.do_simulation(action[i], self.freq_rate)
+            next_state[i] = self.get_current_state()
+        self.unfreeze()
+
+        return self.state2obs(next_state)
 
     def get_euler_pos(
-        self,
-        old_pos: np.ndarray,
-        old_vel: np.ndarray,
+            self,
+            old_pos: np.ndarray,
+            old_vel: np.ndarray,
     ):
         cur_pos_idx = 0
         cur_vel_idx = 0
@@ -178,16 +210,16 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
             if jnt_type == 0:
                 pos_len, vel_len = 7, 6
 
-                new_pos[cur_pos_idx : cur_pos_idx + 3] += old_vel[cur_vel_idx : cur_vel_idx + 3] * self.real_time_scale
-                angle = Rotation.from_quat(old_pos[cur_pos_idx + 3 : cur_pos_idx + 7]).as_euler("zyx", degrees=True)
-                angle += old_vel[cur_vel_idx + 3 : cur_vel_idx + 6] * self.real_time_scale
-                new_pos[cur_pos_idx + 3 : cur_pos_idx + 7] = Rotation.from_euler("xyz", angle, degrees=True).as_quat()
+                new_pos[cur_pos_idx: cur_pos_idx + 3] += old_vel[cur_vel_idx: cur_vel_idx + 3] * self.real_time_scale
+                angle = Rotation.from_quat(old_pos[cur_pos_idx + 3: cur_pos_idx + 7]).as_euler("zyx", degrees=True)
+                angle += old_vel[cur_vel_idx + 3: cur_vel_idx + 6] * self.real_time_scale
+                new_pos[cur_pos_idx + 3: cur_pos_idx + 7] = Rotation.from_euler("xyz", angle, degrees=True).as_quat()
             elif jnt_type == 1:
                 raise NotImplementedError
             else:
                 pos_len, vel_len = 1, 1
-                new_pos[cur_pos_idx : cur_pos_idx + pos_len] += (
-                    old_vel[cur_vel_idx : cur_vel_idx + vel_len] * self.real_time_scale
+                new_pos[cur_pos_idx: cur_pos_idx + pos_len] += (
+                        old_vel[cur_vel_idx: cur_vel_idx + vel_len] * self.real_time_scale
                 )
 
             cur_pos_idx += pos_len
@@ -195,10 +227,10 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
         return new_pos
 
     def additive_gaussian_noise(
-        self,
-        origin_pos: np.ndarray,
-        origin_vel: np.ndarray,
-        noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]],
+            self,
+            origin_pos: np.ndarray,
+            origin_vel: np.ndarray,
+            noise_params: Union[float, Tuple[float, float], Dict[int, Tuple[float, float]]],
     ):
         """
         0:  free    7-pos   6-vel
@@ -229,19 +261,21 @@ class EmeiMujocoEnv(EmeiEnv, MujocoEnv):
             if jnt_type == 0:
                 pos_len, vel_len = 7, 6
 
-                noisy_pos[:, cur_pos_idx : cur_pos_idx + 3] += np.random.randn(batch_size, 3) * pos_n[:3]
-                angle = Rotation.from_quat(origin_pos[:, cur_pos_idx + 3 : cur_pos_idx + 7]).as_euler("zyx", degrees=True)
+                noisy_pos[:, cur_pos_idx: cur_pos_idx + 3] += np.random.randn(batch_size, 3) * pos_n[:3]
+                angle = Rotation.from_quat(origin_pos[:, cur_pos_idx + 3: cur_pos_idx + 7]).as_euler("zyx",
+                                                                                                     degrees=True)
                 angle += np.random.randn(batch_size, 3) * pos_n[3:6]
-                noisy_pos[:, cur_pos_idx + 3 : cur_pos_idx + 7] = Rotation.from_euler("xyz", angle, degrees=True).as_quat()
+                noisy_pos[:, cur_pos_idx + 3: cur_pos_idx + 7] = Rotation.from_euler("xyz", angle,
+                                                                                     degrees=True).as_quat()
 
-                noisy_vel[:, cur_vel_idx : cur_vel_idx + 3] += np.random.randn(batch_size, 3) * vel_n[:3]
-                noisy_vel[:, cur_vel_idx + 3 : cur_vel_idx + 6] += np.random.randn(batch_size, 3) * vel_n[3:6]
+                noisy_vel[:, cur_vel_idx: cur_vel_idx + 3] += np.random.randn(batch_size, 3) * vel_n[:3]
+                noisy_vel[:, cur_vel_idx + 3: cur_vel_idx + 6] += np.random.randn(batch_size, 3) * vel_n[3:6]
             elif jnt_type == 1:
                 raise NotImplementedError
             else:
                 pos_len, vel_len = 1, 1
-                noisy_pos[:, cur_pos_idx : cur_pos_idx + 1] += np.random.randn(batch_size, 1) * pos_n
-                noisy_vel[:, cur_vel_idx : cur_vel_idx + 1] += np.random.randn(batch_size, 1) * vel_n
+                noisy_pos[:, cur_pos_idx: cur_pos_idx + 1] += np.random.randn(batch_size, 1) * pos_n
+                noisy_vel[:, cur_vel_idx: cur_vel_idx + 1] += np.random.randn(batch_size, 1) * vel_n
 
             cur_pos_idx += pos_len
             cur_vel_idx += vel_len

@@ -1,0 +1,24 @@
+env_id: "Walker2dRunning-v0"
+
+params:
+  freq_rate: 1
+  real_time_scale: 0.01
+  integrator: "euler"
+
+# sac
+sac_ent_coef: 0.2
+start_steps: 5000
+
+# eval
+n_eval_episodes: 10
+eval_freq: 1000
+
+# num steps
+num_steps: 10000000
+
+medium_reward: 4000
+expert_reward: 8000
+uniform_sample_num: 200000
+random_sample_num: 200000
+medium_sample_num: 200000
+expert_sample_num: 200000

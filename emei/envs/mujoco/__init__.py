@@ -12,7 +12,7 @@ from emei.envs.mujoco.inverted_double_pendulum import (
 )
 from emei.envs.mujoco.hopper import HopperRunningEnv
 
-# from emei.envs.mujoco.walker2d import Walker2dRunningEnv
+from emei.envs.mujoco.walker2d import Walker2dRunningEnv
 # from emei.envs.mujoco.ant import AntRunningEnv
 from emei.envs.mujoco.half_cheetah import HalfCheetahRunningEnv
 

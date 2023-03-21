@@ -14,7 +14,7 @@ class BaseChargedBallEnv(BaseControlEnv):
         self.mass_ball = 1.0
         self.radius = 1.0
         self.charge = 10.0
-        self.time_step = 0.02  # seconds between state updates
+        self.time_step = 0.02  # seconds between next_state updates
 
         state_high = np.full(4, np.inf, dtype=np.float32)
         self.observation_space = spaces.Box(-state_high, state_high, dtype=np.float32)
@@ -107,7 +107,7 @@ class BaseChargedBallEnv(BaseControlEnv):
             self.state["on_circle"] = True
             self.state["circle_state"] = self.free_to_circle(self.state["free_state"])
 
-    def get_batch_terminal(self, obs):
+    def get_batch_terminal(self, next_obs):
         return False
 
     def draw(self):
@@ -155,8 +155,8 @@ class ChargedBallCenteringEnv(BaseChargedBallEnv):
     def _extract_action(self, action):
         return self.charge if action == 1 else -self.charge
 
-    def get_batch_reward(self, obs):
-        x, y, v_x, v_y = obs
+    def get_batch_reward(self, next_obs):
+        x, y, v_x, v_y = next_obs
         return 1 - math.sqrt(x**2 + y**2) / self.radius
 
 
@@ -169,8 +169,8 @@ class ContinuousChargedBallCenteringEnv(BaseChargedBallEnv):
     def _extract_action(self, action):
         return self.charge * action[0]
 
-    def get_batch_reward(self, obs):
-        x, y, v_x, v_y = obs
+    def get_batch_reward(self, next_obs):
+        x, y, v_x, v_y = next_obs
         return 1 - math.sqrt(x**2 + y**2) / self.radius
 
 

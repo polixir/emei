@@ -1,24 +1,31 @@
 import inspect
 import pathlib
 from collections import defaultdict
-from typing import Union, Dict
+from typing import Union, Dict, Optional
 from abc import abstractmethod
 
 import gym
+from gym.spaces import Space
 import h5py
 import numpy as np
 from tqdm import tqdm
 import urllib.request
 
-from emei.offline_info import URL_INFOS
-
-DATASET_PATH = pathlib.Path.home() / ".emei" / "offline_data"
+from emei.offline_info import URL_INFOS, DATASET_PATH
 
 
-class Freezable:
+class FreezeMixin:
     def __init__(self):
         self.frozen_state = None
         self.frozen = False
+
+    @abstractmethod
+    def freeze_state(self):
+        pass
+
+    @abstractmethod
+    def unfreeze_state(self):
+        pass
 
     def freeze(self):
         """
@@ -26,6 +33,7 @@ class Freezable:
         :return: None
         """
         assert not self.frozen, "env has frozen"
+        self.freeze_state()
         self.frozen = True
 
     def unfreeze(self):
@@ -34,6 +42,7 @@ class Freezable:
         :return: None
         """
         assert self.frozen, "env has unfrozen"
+        self.unfreeze_state()
         self.frozen = False
 
 
@@ -43,7 +52,7 @@ def get_params_str(params: dict):
 
 class OfflineEnv(gym.Env):
     def __init__(self, env_params: Dict[str, Union[str, int, float]]):
-        self.env_name = self.__class__.__name__[:-3]
+        self.env_name = self.__class__.__name__[:-3] + "-v0"
         self.env_params = env_params
 
         self._offline_dataset_urls = {}
@@ -111,37 +120,54 @@ class OfflineEnv(gym.Env):
         return dataset_filepath
 
     def get_dataset(self, dataset_name: str) -> Dict[(str, np.ndarray)]:
-        assert dataset_name in self._offline_dataset_urls
+        assert (
+                dataset_name in self._offline_dataset_urls
+        ), "your `dataset_name` is not in the list, " "choose one from the list please: {}".format(
+            self._offline_dataset_urls)
 
         url = self._offline_dataset_urls[dataset_name]
         h5path = self.download_dataset(url)
 
         data_dict = self.load_h5_data(h5path)
-
         # Run a few quick sanity checks
-        for key in [
-            "observations",
-            "observations",
-            "actions",
-            "rewards",
-            "dones",
-            "timeouts",
-        ]:
-            assert key in data_dict, "Dataset is missing key %s" % key
+        # for key in [
+        #     "observations",
+        #     "observations",
+        #     "actions",
+        #     "rewards",
+        #     "dones",
+        #     "timeouts",
+        # ]:
+        #     assert key in data_dict, "Dataset is missing key %s" % key
 
         return data_dict
 
 
-class EmeiEnv(Freezable, OfflineEnv):
-    def __init__(self, env_params: Dict[str, Union[str, int, float]]):
+class EmeiEnv(FreezeMixin, OfflineEnv):
+    def __init__(
+            self,
+            env_params: Dict[str, Union[str, int, float]],
+            state_space: Optional[Space] = None
+    ):
         """
         Abstract class for all Emei environments to better support model-based RL and offline RL.
         """
-        Freezable.__init__(self)
+        self.state_space = state_space
+
+        FreezeMixin.__init__(self)
         OfflineEnv.__init__(self, env_params=env_params)
-        self._transition_graph = None
-        self._reward_mech_graph = None
-        self._termination_mech_graph = None
+
+    @property
+    def _transition_graph(self):
+        return np.empty(0)
+
+    @property
+    def _reward_mech_graph(self):
+        return np.empty(0)
+
+    @property
+    def _termination_mech_graph(self):
+        return np.empty(0)
 
     def get_transition_graph(self, repeat_times=1):
         g = self._transition_graph.copy()
@@ -170,28 +196,37 @@ class EmeiEnv(Freezable, OfflineEnv):
     def get_termination_mech_graph(self):
         return self._termination_mech_graph
 
-    def transform_state_to_obs(self, batch_state):
+    @abstractmethod
+    def state2obs(self, batch_state):
         return batch_state.copy()
 
-    def transform_obs_to_state(self, batch_obs):
+    @abstractmethod
+    def obs2state(self, batch_obs, batch_extra_obs):
         return batch_obs.copy()
+
+    @abstractmethod
+    def get_batch_extra_obs(self, batch_state):
+        return batch_state.copy()
+
+    @abstractmethod
+    def get_current_state(self):
+        pass
 
     @abstractmethod
     def get_batch_init_state(self, batch_size):
         raise NotImplementedError
 
     def get_batch_init_obs(self, batch_size):
-        return self.transform_state_to_obs(self.get_batch_init_state(batch_size=batch_size))
+        return self.state2obs(self.get_batch_init_state(batch_size=batch_size))
 
     @abstractmethod
-    def get_batch_reward(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
+    def get_batch_reward(self, next_state, state=None, action=None):
         raise NotImplementedError
 
     @abstractmethod
-    def get_batch_terminal(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
+    def get_batch_terminal(self, next_state, state=None, action=None):
         raise NotImplementedError
 
     @abstractmethod
-    def get_batch_next_obs(self, obs, pre_obs=None, action=None, state=None, pre_state=None):
-        assert self.frozen
+    def get_batch_next_obs(self, obs, action):
         raise NotImplementedError

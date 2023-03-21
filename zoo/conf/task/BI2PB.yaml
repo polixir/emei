@@ -7,7 +7,7 @@ params:
 
 
 # sac
-sac_ent_coef: 0.5
+sac_ent_coef: 0.2
 start_steps: 1000
 
 # eval

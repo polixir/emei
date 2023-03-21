@@ -19,7 +19,7 @@ num_steps: 1000000
 
 medium_reward: 400
 expert_reward: 950
-uniform_sample_num: 50000
-random_sample_num: 50000
-medium_sample_num: 50000
-expert_sample_num: 50000
+uniform_sample_num: 20000
+random_sample_num: 20000
+medium_sample_num: 20000
+expert_sample_num: 20000
