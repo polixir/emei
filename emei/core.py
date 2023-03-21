@@ -156,9 +156,18 @@ class EmeiEnv(FreezeMixin, OfflineEnv):
 
         FreezeMixin.__init__(self)
         OfflineEnv.__init__(self, env_params=env_params)
-        self._transition_graph = None
-        self._reward_mech_graph = None
-        self._termination_mech_graph = None
+
+    @property
+    def _transition_graph(self):
+        return np.empty(0)
+
+    @property
+    def _reward_mech_graph(self):
+        return np.empty(0)
+
+    @property
+    def _termination_mech_graph(self):
+        return np.empty(0)
 
     def get_transition_graph(self, repeat_times=1):
         g = self._transition_graph.copy()

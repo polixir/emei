@@ -40,12 +40,6 @@ class BaseInvertedPendulumEnv(EmeiMujocoEnv, utils.EzPickle):
             **kwargs
         )
 
-        self._transition_graph = np.array(
-            [[0, 0, 0, 0], [0, 0, 1, 1], [1, 0, 0, 0], [0, 1, 1, 1], [0, 0, 1, 1]]  # x  # theta  # v  # omega  # action
-        )
-        self._reward_mech_graph = None
-        self._termination_graph = None
-
     def state2obs(self, batch_state):
         batch_state = batch_state.copy()
         batch_state[:, 1:2] = (batch_state[:, 1:2] + np.pi) % (2 * np.pi) - np.pi
@@ -59,6 +53,20 @@ class BaseInvertedPendulumEnv(EmeiMujocoEnv, utils.EzPickle):
     def get_batch_extra_obs(self, batch_state):
         batch_state = batch_state.copy()
         return batch_state[:, 1:2].astype(np.float32)
+
+    @property
+    def _transition_graph(self):
+        return np.array(
+            [[0, 0, 0, 0], [0, 0, 1, 1], [1, 0, 0, 0], [0, 1, 1, 1], [0, 0, 1, 1]]  # x  # theta  # v  # omega  # action
+        )
+
+    @property
+    def _reward_mech_graph(self):
+        return np.empty(0)
+
+    @property
+    def _termination_mech_graph(self):
+        return np.empty(0)
 
 
 class ReboundInvertedPendulumBalancingEnv(BaseInvertedPendulumEnv):

@@ -32,16 +32,24 @@ class BaseCartPoleEnv(BaseControlEnv):
         high = np.array([np.inf, np.pi, np.inf, np.inf])
         self.observation_space = spaces.Box(low=-high, high=high, dtype=np.float32)
 
-        self._transition_graph = np.array(
-            [[0, 0, 0, 0], [0, 0, 1, 1], [1, 0, 0, 0], [0, 1, 1, 1], [0, 0, 1, 1]]  # x  # theta  # v  # omega  # action
-        )
-        self._reward_mech_graph = None
-        self._termination_graph = None
-
         super(BaseCartPoleEnv, self).__init__(
             state_space=spaces.Box(low=-np.inf, high=np.inf, shape=[4], dtype=np.float32),
             freq_rate=freq_rate, real_time_scale=real_time_scale, integrator=integrator, **kwargs
         )
+
+    @property
+    def _transition_graph(self):
+        return np.array(
+            [[0, 0, 0, 0], [0, 0, 1, 1], [1, 0, 0, 0], [0, 1, 1, 1], [0, 0, 1, 1]]  # x  # theta  # v  # omega  # action
+        )
+
+    @property
+    def _reward_mech_graph(self):
+        return np.empty(0)
+
+    @property
+    def _termination_mech_graph(self):
+        return np.empty(0)
 
     def _dsdt(self, s_augmented):
         x, theta, x_dot, theta_dot, force = s_augmented
@@ -49,9 +57,9 @@ class BaseCartPoleEnv(BaseControlEnv):
         pole_mass_length = self.mass_pole * self.length
         cos_theta = math.cos(self.get_absolute_theta(theta))
         sin_theta = math.sin(self.get_absolute_theta(theta))
-        temp = (force + pole_mass_length * theta_dot**2 * sin_theta) / self.total_mass
+        temp = (force + pole_mass_length * theta_dot ** 2 * sin_theta) / self.total_mass
         theta_acc = (self.gravity * sin_theta - cos_theta * temp) / (
-            self.length * (4.0 / 3.0 - self.mass_pole * cos_theta**2 / self.total_mass)
+                self.length * (4.0 / 3.0 - self.mass_pole * cos_theta ** 2 / self.total_mass)
         )
         x_acc = temp - pole_mass_length * theta_acc * cos_theta / self.total_mass
 
@@ -196,22 +204,14 @@ class ContinuousCartPoleSwingUpEnv(CartPoleSwingUpEnv):
 
 
 class ParallelContinuousCartPoleSwingUpEnv(BaseControlEnv):
-    def __init__(self, parallel_num=3, freq_rate: int = 1, real_time_scale: float = 0.02, integrator: str = "euler", **kwargs):
+    def __init__(self, parallel_num=3, freq_rate: int = 1, real_time_scale: float = 0.02, integrator: str = "euler",
+                 **kwargs):
         self.parallel_num = parallel_num
 
         self.envs = [ContinuousCartPoleSwingUpEnv()] * parallel_num
         self.action_space = spaces.Box(-1, 1, shape=(parallel_num,), dtype=np.float32)
         high = np.array([np.inf, np.pi, np.inf, np.inf] * parallel_num)
         self.observation_space = spaces.Box(low=-high, high=high, dtype=np.float32)
-
-        self._transition_graph = np.zeros((5 * parallel_num, 4 * parallel_num))
-        for i in range(parallel_num):
-            self._transition_graph[i * 4 : (i + 1) * 4, i * 4 : (i + 1) * 4] = np.array(
-                [[0, 0, 0, 0], [0, 0, 1, 1], [1, 0, 0, 0], [0, 1, 1, 1]]
-            )
-            self._transition_graph[4 * parallel_num + i, i * 4 : (i + 1) * 4] = np.array([0, 0, 1, 1])
-        self._reward_mech_graph = None
-        self._termination_graph = None
 
         super().__init__(
             self.observation_space,
@@ -222,17 +222,36 @@ class ParallelContinuousCartPoleSwingUpEnv(BaseControlEnv):
             **kwargs
         )
 
+    @property
+    def _transition_graph(self):
+        graph = np.zeros((5 * self.parallel_num, 4 * self.parallel_num))
+        for i in range(self.parallel_num):
+            graph[i * 4: (i + 1) * 4, i * 4: (i + 1) * 4] = np.array(
+                [[0, 0, 0, 0], [0, 0, 1, 1], [1, 0, 0, 0], [0, 1, 1, 1]]
+            )
+            graph[4 * self.parallel_num + i, i * 4: (i + 1) * 4] = np.array([0, 0, 1, 1])
+        return graph
+
+    @property
+    def _reward_mech_graph(self):
+        return np.empty(0)
+
+    @property
+    def _termination_mech_graph(self):
+        return np.empty(0)
+
     def _extract_action(self, action):
         return self.envs[0].force_mag * action
 
     def get_batch_terminal(self, next_state, state=None, action=None):
         ts = np.concatenate(
-            [env.get_batch_terminal(next_state[:, i * 4 : (i + 1) * 4]) for i, env in enumerate(self.envs)], -1
+            [env.get_batch_terminal(next_state[:, i * 4: (i + 1) * 4]) for i, env in enumerate(self.envs)], -1
         )
         return ts.all(-1).reshape(-1, 1)
 
     def get_batch_reward(self, next_state, state=None, action=None):
-        rs = np.concatenate([env.get_batch_reward(next_state[:, i * 4 : (i + 1) * 4]) for i, env in enumerate(self.envs)], -1)
+        rs = np.concatenate(
+            [env.get_batch_reward(next_state[:, i * 4: (i + 1) * 4]) for i, env in enumerate(self.envs)], -1)
         return rs.sum(-1).reshape(-1, 1)
 
     def _dsdt(self, s_augmented):
@@ -248,7 +267,7 @@ class ParallelContinuousCartPoleSwingUpEnv(BaseControlEnv):
 
     def state2obs(self, batch_state):
         batch_state = np.concatenate(
-            [env.state2obs(batch_state[:, i * 4 : (i + 1) * 4]) for i, env in enumerate(self.envs)], -1
+            [env.state2obs(batch_state[:, i * 4: (i + 1) * 4]) for i, env in enumerate(self.envs)], -1
         )
         return batch_state
 
@@ -256,8 +275,8 @@ class ParallelContinuousCartPoleSwingUpEnv(BaseControlEnv):
         batch_state = np.concatenate(
             [
                 env.obs2state(
-                    batch_obs[:, i * 4 : (i + 1) * 4],
-                    batch_extra_obs[:, i : i + 1],
+                    batch_obs[:, i * 4: (i + 1) * 4],
+                    batch_extra_obs[:, i: i + 1],
                 )
                 for i, env in enumerate(self.envs)
             ],
